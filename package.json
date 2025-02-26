@@ -7,5 +7,9 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "solady": "^0.1.9",
+    "viem": "^2.23.5"
   }
 }
