@@ -11,6 +11,8 @@ import { type V2PoolReservesUpdate, type V2Instance } from "./arbCalc";
 
 import { createPublicClient, http, parseAbiItem, type PublicClient } from "viem";
 
+import { WETH_ADDRESSES } from "../constants/addresses";
+
 // // --- ABI for the Sync event ---
 const UNISWAP_V2_SYNC_ABI = parseAbiItem(
     "event Sync(uint112 reserve0, uint112 reserve1)"
@@ -34,45 +36,36 @@ const UNISWAP_V2_SYNC_ABI = parseAbiItem(
 export function watchSyncEvents(
     publicClient: PublicClient,
     v2Instance: V2Instance,
-    pairAddress: `0x${string}`,
+    tokenAddress: `0x${string}`,
     onPriceUpdate: (update: V2PoolReservesUpdate) => void
 ): () => void {
     if (!publicClient.chain) {
         throw new Error("PublicClient does not have a chain defined.");
     }
 
+
+    const wethAddress: `0x${string}` = WETH_ADDRESSES.get(v2Instance.chainId) as `0x${string}`;
+    const token0 = tokenAddress < wethAddress ? tokenAddress : wethAddress;
+    const token1 = tokenAddress < wethAddress ? wethAddress : tokenAddress;
+    const pairAddress = "0x"; // FIX
     const unwatch = publicClient.watchEvent({
         address: pairAddress as `0x${string}`,
         event: UNISWAP_V2_SYNC_ABI,
         onLogs: (logs) => {
-            // for (const log of logs) {
-            //     // Extract reserves from the Sync event.
-            //     if (logs.args.reserve0) {
-            //         const reserve0: bigint = log.args.reserve0;
-            //         const reserve1: bigint = log.args.reserve1;
-            //     }
-
-            //     if (reserve0 === 0n) {
-            //         console.warn("reserve0 is zero, cannot compute price.");
-            //         continue;
-            //     }
-
-            //     // Compute price: assume token0 is the base token.
-            //     const price = Number(reserve1) / Number(reserve0);
-            //     console.log(
-            //         `Sync event on ${rpcUrl}: reserve0=${reserve0}, reserve1=${reserve1}, price=${price}`
-            //     );
-
-            //     // Send the price update for arbitrage processing.
-            //     onPriceUpdate({ rpcUrl, price });
-            // }
             for (const log of logs) {
-                const v2PriceUpdate: V2PoolReservesUpdate = {
-
-                    v2Instance: v2Instance,
-                    reserve0: logs.args.reserve0,
-                    reserve1: logs.args.reserve1
+                if (!log.args.reserve0 || !log.args.reserve1) {
+                    // console.warn("Sync event is missing reserve0 or reserve1.");
+                    continue;
                 }
+                const v2PriceUpdate: V2PoolReservesUpdate = {
+                    v2Instance: v2Instance,
+                    reserve0: log.args.reserve0,
+                    reserve1: log.args.reserve1,
+                    token0: token0,
+                    token1: token1,
+                    weth: wethAddress == token0 ? 0 : 1,
+                }
+                onPriceUpdate(v2PriceUpdate);
             }
 
         },

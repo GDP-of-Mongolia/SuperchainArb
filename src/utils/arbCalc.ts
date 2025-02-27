@@ -5,6 +5,7 @@
  */
 
 import { formatEther, parseEther } from "viem";
+import { getAmountOut } from "./uniswapv2";
 
 // Define our interfaces
 
@@ -27,6 +28,13 @@ interface BridgeSuperchainERC20Ins {
   fromChainID: number;
   toChainID: number;
   ca: `0x${string}`;
+  amount: bigint;
+}
+
+interface BridgeSuperchainWETHIns {
+  fromChainID: number;
+  toChainID: number;
+  amount: bigint;
 }
 
 // assuming swapExactETHForTokens
@@ -37,7 +45,7 @@ interface SwapV2Ins {
   minAmountOut: bigint;
 }
 
-type V2ArbPathInstruction = BridgeSuperchainERC20Ins | SwapV2Ins;
+type V2ArbPathInstruction = BridgeSuperchainERC20Ins | SwapV2Ins | BridgeSuperchainWETHIns;
 
 export type V2ArbOppurtityResult = V2ArbExecution | null;
 
@@ -77,8 +85,41 @@ export const evaluateV2ArbOppurtunity = (
 
   const idealAmountIn = parseEther(idealAmountInNum.toString());
 
+  const amountTokenOutChainA = getAmountOut(idealAmountIn, ethReserveA, tokenReserveA, updateOne.v2Instance.feesBPS);
+  const amountETHOutChainB = getAmountOut(amountTokenOutChainA, tokenReserveB, ethReserveB, updateTwo.v2Instance.feesBPS);
 
+  const estimatedProfit = amountETHOutChainB - idealAmountIn;
 
+  if (estimatedProfit > 0) {
+    return {
+      instructions: [
+        {
+          v2Instance: updateOne.v2Instance,
+          amountIn: idealAmountIn,
+          minAmountOut: 0n,
+          path: updateOne.weth === 0 ? [updateOne.token0, updateOne.token1] : [updateOne.token1, updateOne.token0],
+        },
+        {
+          fromChainID: updateOne.v2Instance.chainId,
+          toChainID: updateTwo.v2Instance.chainId,
+          ca: updateOne.weth === 0 ? updateOne.token1 : updateOne.token0,
+          amount: amountTokenOutChainA,
+        },
+        {
+          v2Instance: updateTwo.v2Instance,
+          path: updateTwo.weth === 0 ? [updateTwo.token1, updateTwo.token0] : [updateTwo.token0, updateTwo.token1],
+          amountIn: amountTokenOutChainA,
+          minAmountOut: 0n,
+        },
+        {
+          fromChainID: updateTwo.v2Instance.chainId,
+          toChainID: updateOne.v2Instance.chainId,
+          amount: amountETHOutChainB,
+        },
+      ],
+      estimatedProfit
+    }
+  }
 
   return null;
 };
