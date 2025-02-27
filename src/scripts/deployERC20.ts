@@ -4,6 +4,7 @@ import { tokenAbi, tokenBytecode } from '';
 
 import { chains, salt, owner_address, name, symbol, decimals } from '../config/deployConfig';
 import { PRIVATE_KEY } from '../config/config';
+import { writeContract } from 'viem/actions';
 
 
 /**
