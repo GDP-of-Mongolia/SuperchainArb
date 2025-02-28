@@ -45,6 +45,7 @@ export const watchSyncEvents = (
 	tokenAndV2Instance: TokenAndV2Instance,
 	onPriceUpdate: (update: V2PoolReservesUpdate) => void,
 ): WatchEventReturnType => {
+	console.log('Inside watchSyncEvents.');
 	const publicClient = createPublicClient({
 		transport: http(chainIDToRPCUrls.get(chainId) as string),
 		chain: chainIDtoChain.get(chainId),

@@ -72,7 +72,7 @@ export const buy = async (
         return;
     }
 
-    const request = await walletClient.writeContract({
+    const buyHash = await walletClient.writeContract({
         address: UNISWAP_V2_ROUTER_ADDRESSES.get(chainId)!,
         abi: ROUTER_V2_ABI,
         functionName: 'swapExactETHForTokens',
@@ -82,6 +82,8 @@ export const buy = async (
         account: account,
         chain: walletClient.chain,
     });
+
+    return buyHash;
 };
 
 export const sell = async (
