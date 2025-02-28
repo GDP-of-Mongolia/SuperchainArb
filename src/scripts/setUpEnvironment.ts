@@ -10,11 +10,10 @@ const { spawn } = Bun;
 
 const deployToken = async () => {
     const process = spawn([
-        "env-cmd",
         "-f",
         ".env",
         "cross-env-shell",
-        "forge script contracts/SuperchainERC20Deployer.sol --broadcast --private-key $DEPLOYER_PRIVATE_KEY"
+        "forge script src/contracts/SuperchainERC20Deployer.sol --broadcast --private-key $DEPLOYER_PRIVATE_KEY"
     ]);
 
 

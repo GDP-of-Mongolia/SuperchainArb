@@ -5,15 +5,18 @@ import { Script, console } from 'lib/forge-std/src/Script.sol';
 import { Vm } from 'lib/forge-std/src/Vm.sol';
 import { L2NativeSuperchainERC20 } from './L2NativeSuperchainERC20.sol';
 
+import { SwapAndBridge } from './BridgeSwap.sol';
+
 contract SuperchainERC20Deployer is Script {
 	string deployConfig;
 
 	constructor() {
 		string memory deployConfigPath = vm.envOr(
 			'DEPLOY_CONFIG_PATH',
-			string('/config/deploy-config.toml')
+			string('./deploy-config.toml')
 		);
-		string memory filePath = string.concat(vm.projectRoot(), deployConfigPath);
+		//string memory filePath = string.concat(vm.projectRoot(), deployConfigPath);
+		string memory filePath = deployConfigPath;
 		deployConfig = vm.readFile(filePath);
 	}
 
@@ -36,11 +39,6 @@ contract SuperchainERC20Deployer is Script {
 		address ownerAddr;
 		address bridgeAddress;
 
-		ownerAddr_ = vm.parseTomlAddress(deployConfig, '.token.owner_address');
-		string memory name = vm.parseTomlString(deployConfig, '.token.name');
-		string memory symbol = vm.parseTomlString(deployConfig, '.token.symbol');
-		uint256 decimals = vm.parseTomlUint(deployConfig, '.token.decimals');
-
 		for (uint256 i = 0; i < chainsToDeployTo.length; i++) {
 			string memory chainToDeployTo = chainsToDeployTo[i];
 
@@ -48,7 +46,7 @@ contract SuperchainERC20Deployer is Script {
 
 			vm.createSelectFork(chainToDeployTo);
 			(address _deployedAddress, address _ownerAddr) = deployL2NativeSuperchainERC20();
-			address _bridgeAddress = deployBridgeSwap(ownerAddr_);
+			address _bridgeAddress = deployBridgeSwap(ownerAddr);
 			deployedAddress = _deployedAddress;
 			bridgeAddress = _bridgeAddress;
 			ownerAddr = _ownerAddr;
@@ -62,6 +60,11 @@ contract SuperchainERC20Deployer is Script {
 		broadcast
 		returns (address addr_, address ownerAddr_)
 	{
+		ownerAddr_ = vm.parseTomlAddress(deployConfig, '.token.owner_address');
+		string memory name = vm.parseTomlString(deployConfig, '.token.name');
+		string memory symbol = vm.parseTomlString(deployConfig, '.token.symbol');
+		uint256 decimals = vm.parseTomlUint(deployConfig, '.token.decimals');
+
 		require(decimals <= type(uint8).max, 'decimals exceeds uint8 range');
 		bytes memory initCode = abi.encodePacked(
 			type(L2NativeSuperchainERC20).creationCode,
@@ -107,7 +110,7 @@ contract SuperchainERC20Deployer is Script {
 			addr_ = preComputedAddress;
 		} else {
 			// Deploy the contract using CREATE2
-			addr_ = address(new SwapAndBridge{ salt: _implSalt() }(ownerAddr_, erc20Address_));
+			addr_ = address(new SwapAndBridge{ salt: _implSalt() }());
 			console.log('Deployed SwapAndBridge at address: ', addr_);
 		}
 	}

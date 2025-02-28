@@ -1,5 +1,5 @@
 {
-    "name": "@superchainerc20-starter/contracts",
+    "name": "superchainarb/src/contracts",
     "main": "index.js",
     "scripts": {
       "deploy:dev": "env-cmd -f .env cross-env-shell 'wait-port http://:8420/ready && forge script scripts/SuperchainERC20Deployer.s.sol --broadcast --private-key $DEPLOYER_PRIVATE_KEY'",
