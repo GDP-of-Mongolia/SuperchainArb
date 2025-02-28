@@ -146,13 +146,19 @@ const SuperchainArbitrage = async () => {
 
 	// simulate a fat finger on optimism
 
-	const fatFingerHash = await buy(
+	const fatFingerHash = (await buy(
 		optimismWalletClient,
 		FAT_FINGER_ACCOUNT,
 		AMOUNT_FAT_FINGER,
 		tokenAddress,
 		10,
-	);
+	)) as `0x${string}`;
+
+	const fatFingerReceipt = await optimismPublicClient.waitForTransactionReceipt({
+		hash: fatFingerHash,
+	});
+
+	console.log(fatFingerReceipt);
 
 	console.log('fatFingerHash', fatFingerHash);
 
