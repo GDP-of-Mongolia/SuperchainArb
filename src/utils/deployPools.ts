@@ -82,6 +82,7 @@ export const addLiquidity = async (
 		const liquidityBalance = result;
 
 		const addLiquidityHash = await walletClient.writeContract(request);
+		return addLiquidityHash;
 	} catch (error: any) {
 		console.error('Error adding liquidity:', error);
 		return null;
