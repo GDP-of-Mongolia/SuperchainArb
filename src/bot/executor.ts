@@ -87,6 +87,9 @@ export class Executor {
 		const currV2Insance = tokenAndV2Instances.find(
 			(v2Instance) => v2Instance == update.v2Instance,
 		);
+
+		console.log('current v2 instance, which is used as part of the key', currV2Insance);
+
 		if (!currV2Insance) {
 			return;
 		}
@@ -101,17 +104,17 @@ export class Executor {
 		const tokenAndV2Instances: TokenAndV2Instance[] = v2Instances.map((v2Instance) => {
 			return { ca: ca, v2Instance: v2Instance };
 		});
-		const priceUpdates: V2PoolReservesUpdate[] = tokenAndV2Instances
-			.map((tokenAndV2Instance) => {
+		const priceUpdates: V2PoolReservesUpdate[] = tokenAndV2Instances.map(
+			(tokenAndV2Instance) => {
 				const update = this.latestPriceUpdates.get(tokenAndV2Instance);
 				if (!update) {
 					return;
 				}
 				return update as V2PoolReservesUpdate;
-			})
-			.filter(
-				(update): update is V2PoolReservesUpdate => update !== null,
-			) as V2PoolReservesUpdate[];
+			},
+		) as V2PoolReservesUpdate[];
+
+		console.log('state of latestPriceUpdates', this.latestPriceUpdates);
 
 		// eliminate undefined elements from priceUpdates
 
