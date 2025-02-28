@@ -2,10 +2,6 @@ import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 
-export type SupersimParameters = {
-    l1Port?: number
-    l2StartingPort?: number
-}
 
 export type SupersimReturnArg = Promise<() => void>
 
@@ -14,17 +10,13 @@ const STD_OUT_PATH = path.resolve(__dirname, './stdout.txt')
 const STD_ERR_PATH = path.resolve(__dirname, './stderr.txt')
 
 export async function startSupersim(
-    params?: SupersimParameters,
 ): SupersimReturnArg {
-    const args = [] as string[]
-
-    if (params?.l1Port) {
-        args.push(`--l1.port ${params.l1Port}`)
-    }
-
-    if (params?.l2StartingPort) {
-        args.push(` --l2.starting.port ${params.l2StartingPort}`)
-    }
+    const args = [
+        'fork',
+        '--chains=op,base',
+        '--interop.enabled',
+        '--interop.autorelay'
+    ]
 
     fs.writeFileSync(STD_OUT_PATH, '')
     fs.writeFileSync(STD_ERR_PATH, '')
@@ -55,3 +47,13 @@ export async function startSupersim(
         })
     })
 }
+
+
+(async () => {
+    try {
+        const cleanup = await startSupersim();
+        //cleanup(); // Cleanup process after deployment
+    } catch (error) {
+        console.error('Error in execution:', error);
+    }
+})();

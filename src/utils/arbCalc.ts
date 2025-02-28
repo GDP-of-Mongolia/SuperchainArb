@@ -64,6 +64,7 @@ export const evaluateV2ArbOppurtunity = (
   // assuming the fees are the same for now
   // assuming the tokens have 18 decimals
   // Double check bigint and number logic
+  // assuming the tokens are the same
   const ethReserveA = updateOne.weth === 0 ? updateOne.reserve0 : updateOne.reserve1;
   const ethReserveANum = Number(formatEther(ethReserveA));
 

@@ -1,3 +1,27 @@
+import { type Client, type PublicClient, type WalletClient } from "viem"
+import {
+    http,
+    encodeFunctionData,
+    createPublicClient,
+    createWalletClient,
+    parseAbi,
+    defineChain,
+    publicActions,
+    walletActions,
+} from "viem";
+import {
+    contracts,
+    publicActionsL2,
+    walletActionsL2,
+    createInteropSentL2ToL2Messages,
+    decodeRelayedL2ToL2Messages,
+} from "@eth-optimism/viem";
+
+import { privateKeyToAccount } from "viem/accounts";
+
+import { base, optimism, mainnet } from "viem/chains";
+
+import { supersimL2A, supersimL2B } from "@eth-optimism/viem/chains";
 
 
 export const SUPERSIM_SUPERC20_ADDRESS =
@@ -9,12 +33,46 @@ export const SUPERCHAIN_TOKEN_BRIDGE =
 export const L2TOL2_MESSENGER =
     '0x4200000000000000000000000000000000000023';
 
-export const RPC_URL = process.env.RPC_URL || 'http://127.0.0.1:9545';
-export const PRIVATE_KEY = process.env.PRIVATE_KEY || '0xYourPrivateKey';
-export const CHAIN_ID = Number(process.env.CHAIN_ID) || 901;
+export const PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-export const PUBLIC_KEY = '0xPublicKey'
-
-export const ROUTER_V2_ADDRESS: `0x${string}` = "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24";
+export const PUBLIC_KEY = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
 export const DEADLINE = 2000000000; // used for deadline parameter in a variety of functions
+
+export const chainIDToRPCUrls: Map<number, `https://${string}` | `http://${string}`> = new Map<number, `https://${string}` | `http://${string}`>([
+    [10, "http://127.0.0.1:9545"],
+    [8453, "http://127.0.0.1:9546"],
+]);
+
+export const chainIDToPublicClient: Map<number, PublicClient | Client> = new Map<number, PublicClient | Client>([
+    [10, createPublicClient({
+        chain: optimism,
+        transport: http("http://127.0.0.1:9545"),
+
+    }).extend(publicActionsL2())],
+    [8453, createPublicClient({
+        chain: base,
+        transport: http("http://127.0.0.1:9546"),
+    }).extend(publicActionsL2())],
+]);
+
+
+
+export const chainIDToWalletClient: Map<number, WalletClient> = new Map<number, WalletClient>([
+    [10, createWalletClient({
+        chain: optimism,
+        transport: http("http://127.0.0.1:9545"),
+        // account: PUBLIC_KEY as `0x${string}`, // Ensuring correct type
+    })],
+    [8453, createWalletClient({
+        chain: base,
+        transport: http("http://127.0.0.1:9546"),
+        // account: PUBLIC_KEY as `0x${string}`,
+    })],
+]);
+
+const DEPLOYER_ACCOUNT = privateKeyToAccount("0x");
+
+const ARBITRAGEOUR_ACCOUNT = privateKeyToAccount("0x");
+
+// EXTEND PUBLIC ACTIONS L2, 

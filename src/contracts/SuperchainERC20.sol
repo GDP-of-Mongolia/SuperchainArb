@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
 // Contracts
-import { ERC20 } from '@solady/tokens/ERC20.sol';
+import { ERC20 } from 'lib/solady/src/tokens/ERC20.sol';
 
 // Libraries
-import { PredeployAddresses } from '@interop-lib/libraries/PredeployAddresses.sol';
+import { PredeployAddresses } from 'lib/interop-lib/src/libraries/PredeployAddresses.sol';
 
 // Interfaces
-import { IERC20 } from '@openzeppelin/contracts/interfaces/IERC20.sol';
-import { IERC7802, IERC165 } from '@interop-lib/interfaces/IERC7802.sol';
+import { IERC20 } from 'lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol';
+import { IERC7802, IERC165 } from 'lib/interop-lib/src/interfaces/IERC7802.sol';
 
 /// @title SuperchainERC20
 /// @notice A standard ERC20 extension implementing IERC7802 for unified cross-chain fungibility across

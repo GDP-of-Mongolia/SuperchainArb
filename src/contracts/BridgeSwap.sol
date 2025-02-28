@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Predeploys } from '@eth-optimism/contracts-bedrock/src/libraries/Predeploys.sol';
-import { IL2ToL2CrossDomainMessenger } from '@eth-optimism/contracts-bedrock/interfaces/L2/IL2ToL2CrossDomainMessenger.sol';
-import { ISuperchainTokenBridge } from '@eth-optimism/contracts-bedrock/interfaces/L2/ISuperChainTokenBridge.sol';
-import { ISuperchainWETH } from '@eth-optimism/contracts-bedrock/interfaces/L2/ISuperChainWETH.sol';
-import { IL2ToL2CrossDomainMessenger } from '@eth-optimism/contracts-bedrock/interfaces/L2/IL2ToL2CrossDomainMessenger.sol';
-import { PredeployAddresses } from '@interop-lib/libraries/PredeployAddresses.sol';
-import { CrossDomainMessageLib } from '@interop-lib/libraries/CrossDomainMessageLib.sol';
+import { Predeploys } from 'lib/eth-optimism-contracts-bedrock/packages/contracts-bedrock/src/libraries/Predeploys.sol';
+import { ISuperchainTokenBridge } from 'lib/eth-optimism-contracts-bedrock/packages/contracts-bedrock/interfaces/L2/ISuperChainTokenBridge.sol';
+import { ISuperchainWETH } from 'lib/eth-optimism-contracts-bedrock/packages/contracts-bedrock/interfaces/L2/ISuperChainWETH.sol';
+import { IL2ToL2CrossDomainMessenger } from 'lib/eth-optimism-contracts-bedrock/packages/contracts-bedrock/interfaces/L2/IL2ToL2CrossDomainMessenger.sol';
+import { CrossDomainMessageLib } from 'lib/interop-lib/src/libraries/CrossDomainMessageLib.sol';
 
 interface IUniswapV2Router02 {
 	function swapExactETHForTokens(
@@ -28,17 +26,17 @@ interface IUniswapV2Router02 {
 
 contract SwapAndBridge {
 	ISuperchainTokenBridge bridgeInterface =
-		ISuperchainTokenBridge(PredeployAddresses.SUPERCHAIN_TOKEN_BRIDGE);
+		ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
-	ISuperchainWETH wethInterface = ISuperchainWETH(PredeployAddresses.SUPERCHAIN_WETH);
+	ISuperchainWETH wethInterface = ISuperchainWETH(Predeploys.SUPERCHAIN_WETH);
 
 	// Do we have some sort of mapping to get the router address
 	IUniswapV2Router02 routerInterface = IUniswapV2Router02();
 
 	IL2toL2CrossDomainMessenger messengerInterface =
-		IL2toL2CrossDomainMessenger(PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+		IL2toL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-	function SwapAndBridge(
+	function swapAndBridge(
 		address owner,
 		address token,
 		address recipient,
@@ -53,13 +51,20 @@ contract SwapAndBridge {
 
 		IUniswapV2Router02 destRouter = IUniswapV2Router02(destRouterV2);
 
+		address[] path = [PredeployAddresses.SUPERCHAIN_WETH, token];
+
 		// Transfer tokenIn from the caller to this contract.
 		require(IERC20(tokenIn).transferFrom(msg.sender, address(this), amount), 'Transfer failed');
 
 		// Approve the Uniswap router to spend tokenIn.
 		require(IERC20(tokenIn).approve(address(this), amountIn), 'Approval failed');
 
-		uint[] memory amounts1 = originRouter.swapExactETHForTokens();
+		uint[] memory amounts1 = originRouter.swapExactETHForTokens{ value: amount }(
+			0,
+			path,
+			owner,
+			2000000000
+		);
 
 		uint256 swappedAmount = amounts[amounts.length - 1];
 
@@ -83,6 +88,7 @@ contract SwapAndBridge {
 			recepient,
 			token,
 			owner,
+			swappedAmount,
 			destinationChainID,
 			originChainID,
 			destRouterV2,
@@ -102,7 +108,6 @@ contract SwapAndBridge {
 		uint256 destinationChainId,
 		address originRouterV2,
 		address destRouterV2,
-		address destContract,
 		bytes32 _sendHash
 	) external {
 		CrossDomainMessageLib.requireCrossDomainCallback(); // what does this do. it was in the example code
@@ -116,7 +121,15 @@ contract SwapAndBridge {
 
 		IUniswapV2Router02 destRouter = IUniswapV2Router02(destRouterV2);
 
-		uint[] memory amounts1 = originRouter.swapExactTokensForETH();
+		address[] path = [token, PredeployAddresses.SUPERCHAIN_WETH];
+
+		uint[] memory amounts1 = originRouter.swapExactTokensForETH(
+			amount,
+			0,
+			path,
+			recipient,
+			2000000000
+		);
 
 		uint256 swappedAmount = amounts[amounts.length - 1];
 

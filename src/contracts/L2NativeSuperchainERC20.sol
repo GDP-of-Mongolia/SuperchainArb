@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { SuperchainERC20 } from './SuperchainERC20.sol';
-import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
+import { Ownable } from 'lib/solady/src/auth/Ownable.sol';
 
 contract L2NativeSuperchainERC20 is SuperchainERC20, Ownable {
 	string private _name;

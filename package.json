@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@eth-optimism/contracts-bedrock": "^0.17.3",
+    "@eth-optimism/viem": "^0.3.3",
+    "forge-std": "^1.1.2",
     "mathjs": "^14.2.1",
     "openzeppelin": "^1.0.0",
     "prettier": "^3.5.2",

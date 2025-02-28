@@ -1,34 +1,42 @@
-import { createPublicClient, createWalletClient, http } from 'viem';
+import { createPublicClient, createWalletClient, http, erc20Abi, type PrivateKeyAccount } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { DEADLINE, PRIVATE_KEY, PUBLIC_KEY, ROUTER_V2_ADDRESS } from '../config/config';
+import { DEADLINE, PRIVATE_KEY, PUBLIC_KEY } from '../config/config';
 import type { WalletClient, PublicClient } from 'viem'
 import { ROUTER_V2_ABI } from '../constants/abi/ABIs';
-import { tokenAbi, tokenBytecode } from '';
+import { UNISWAP_V2_ROUTER_ADDRESSES } from '../constants/addresses';
 
 
-async function addLiquidity(amountEth: bigint, token: string, rpcUrl: string, supply: bigint, walletClient: WalletClient, publicClient: PublicClient) {
+async function addLiquidity(amountEth: bigint, token: `0x${string}`, amountToken: bigint, walletClient: WalletClient, publicClient: PublicClient, account: PrivateKeyAccount) {
 
     try {
         // Approve add liquidity
+        const routerV2Address = UNISWAP_V2_ROUTER_ADDRESSES.get(walletClient.chain?.id as number);
+
+        if (!routerV2Address) {
+            return;
+        }
+
         const approveAddLiquidityHash = await walletClient.writeContract({
-            abi: tokenAbi,
+            abi: erc20Abi,
             address: token as `0x${string}`,
             functionName: 'approve',
-            args: [ROUTER_V2_ADDRESS, 115792089237316195423570985008687907853269984665640564039457584007913129639935n],
+            args: [routerV2Address, 115792089237316195423570985008687907853269984665640564039457584007913129639935n],
             nonce: 1,
-            gas: 100000n
+            gas: 100000n,
+            chain: walletClient.chain,
+            account: account
         });
 
         const approveAddLiquidityReceipt = await publicClient.waitForTransactionReceipt({ hash: approveAddLiquidityHash });
 
         const { request, result } = await publicClient.simulateContract({
             account: PUBLIC_KEY,
-            address: ROUTER_V2_ADDRESS,
+            address: routerV2Address,
             abi: ROUTER_V2_ABI,
             functionName: "addLiquidityETH",
-            args: [token as `0x${string}`, supply, supply, amountEth, PUBLIC_KEY, BigInt(DEADLINE)],
+            args: [token as `0x${string}`, amountToken, amountToken, amountEth, PUBLIC_KEY, BigInt(DEADLINE)],
             value: amountEth,
-            nonce: 2,
+            // nonce: 2,
             gas: 3000000n
         });
 
