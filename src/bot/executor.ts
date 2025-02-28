@@ -77,6 +77,7 @@ export class Executor {
 	};
 
 	onPriceUpdate = async (update: V2PoolReservesUpdate) => {
+		console.log('Price update received.');
 		const tokenAndV2Instances = this.tokensAndInstances.get(
 			update.weth == 0 ? update.token1 : update.token0,
 		);
