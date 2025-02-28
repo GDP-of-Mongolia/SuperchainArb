@@ -201,6 +201,7 @@ export class Executor {
 }
 
 const getPriceUpdatePairs = (priceUpdates: V2PoolReservesUpdate[]) => {
+	console.log(priceUpdates);
 	const pairs = [];
 	for (let i = 0; i < priceUpdates.length; i++) {
 		for (let j = i + 1; j < priceUpdates.length; j++) {
