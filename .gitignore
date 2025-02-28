@@ -175,3 +175,8 @@ dist
 .DS_Store
 
 lib
+
+broadcast
+
+cache
+out

@@ -1,0 +1,48 @@
+No files changed, compilation skipped
+Script ran successfully.
+Gas used: 5233450
+
+== Logs ==
+  Deploying to chain:  op
+  Deployed L2NativeSuperchainERC20 at address:  0xA1d05AF1ea495De47E704fFDa7f21Bead40c4201 on chain id:  10
+  Deployed SwapAndBridge at address:  0x9374063cc55062067125660944Bf5d47A43f20a7
+  Deploying to chain:  base
+  Deployed L2NativeSuperchainERC20 at address:  0xA1d05AF1ea495De47E704fFDa7f21Bead40c4201 on chain id:  8453
+  Deployed SwapAndBridge at address:  0x9374063cc55062067125660944Bf5d47A43f20a7
+  Outputting deployment result
+
+## Setting up 2 EVMs.
+
+==========================
+
+Chain 10
+
+Estimated gas price: 1.000000014 gwei
+
+Estimated total gas used for script: 3828868
+
+Estimated amount required: 0.003828868053604152 ETH
+
+==========================
+
+==========================
+
+Chain 8453
+
+Estimated gas price: 1.000000014 gwei
+
+Estimated total gas used for script: 3828868
+
+Estimated amount required: 0.003828868053604152 ETH
+
+==========================
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /Users/ED/Superchain/SuperchainArb/broadcast/multi/SuperchainERC20Deployer.sol-latest/run.json
+
+Sensitive details saved to: /Users/ED/Superchain/SuperchainArb/cache/multi/SuperchainERC20Deployer.sol-latest/run.json
+
