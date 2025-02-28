@@ -34,34 +34,44 @@ function updateDeployConfig() {
 // Function to update config.ts with the new deployed address
 function updateConfigTS() {
     try {
+        // Read and parse deployment.json
         const deploymentData = JSON.parse(fs.readFileSync(DEPLOYMENT_JSON_PATH, 'utf-8'));
 
-        console.log(`the deployment data is ${deploymentData}`);
+        console.log(`Deployment data:`, deploymentData);
 
-        if (!deploymentData.deployedAddress) {
-            throw new Error("Missing 'deployedAddress' in deployment.json");
+        if (!deploymentData.deployedAddress || !deploymentData.bridgeAddress) {
+            throw new Error("Missing 'deployedAddress' or 'bridgeAddress' in deployment.json");
         }
 
         const tokenAddress = deploymentData.deployedAddress.toLowerCase();
+        const bridgeAddress = deploymentData.bridgeAddress.toLowerCase();
 
-        console.log(`The deployed address is ${tokenAddress}`);
+        console.log(`New TOKEN_ADDRESS: ${tokenAddress}`);
+        console.log(`New BRIDGE_SWAP_CONTRACT: ${bridgeAddress}`);
 
         // Read the current config.ts file
         let configContent = fs.readFileSync(CONFIG_TS_PATH, 'utf-8');
 
-        // Replace the existing token address
+        // Replace the existing TOKEN_ADDRESS
         configContent = configContent.replace(
             /export const TOKEN_ADDRESS = '0x[a-fA-F0-9]{40}';/,
             `export const TOKEN_ADDRESS = '${tokenAddress}';`
         );
 
+        // Replace the existing BRIDGE_SWAP_CONTRACT
+        configContent = configContent.replace(
+            /export const BRIDGE_SWAP_CONTRACT = '0x[a-fA-F0-9]{40}';/,
+            `export const BRIDGE_SWAP_CONTRACT = '${bridgeAddress}';`
+        );
+
         // Write the updated content back to config.ts
         fs.writeFileSync(CONFIG_TS_PATH, configContent, 'utf-8');
-        console.log(`Updated TOKEN_ADDRESS in config.ts: ${tokenAddress}`);
+        console.log(`Updated config.ts with TOKEN_ADDRESS: ${tokenAddress} and BRIDGE_SWAP_CONTRACT: ${bridgeAddress}`);
     } catch (error) {
         console.error('Error updating config.ts:', error);
     }
 }
+
 
 
 // Run both updates
