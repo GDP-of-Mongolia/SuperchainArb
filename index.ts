@@ -10,36 +10,135 @@
  * 9. See if it executes, and log the result
  */
 
-import { chainIDToPublicClient, chainIDToWalletClient } from "./src/config/config";
-import { type PublicClient } from "viem"
+import {
+	DEPLOYER_ACCOUNT,
+	FAT_FINGER_ACCOUNT,
+	chainIDToRPCUrls,
+	chainIDToWalletClient,
+} from './src/config/config';
+import {
+	type PublicClient,
+	createPublicClient,
+	http,
+	createWalletClient,
+	parseAbiItem,
+	parseAbi,
+} from 'viem';
+import { addLiquidity } from './src/utils/deployPools';
+import { type V2Instance } from './src/utils/arbCalc';
 
 import {
-    contracts,
-    publicActionsL2,
-    walletActionsL2,
-    createInteropSentL2ToL2Messages,
-    decodeRelayedL2ToL2Messages,
-} from "@eth-optimism/viem";
+	contracts,
+	publicActionsL2,
+	walletActionsL2,
+	createInteropSentL2ToL2Messages,
+	decodeRelayedL2ToL2Messages,
+	superchainERC20Abi,
+} from '@eth-optimism/viem';
 
-const optimismPublicClient = chainIDToPublicClient.get(10)?.extend(publicActionsL2());
-const basePublicClient = chainIDToPublicClient.get(8453)?.extend(publicActionsL2());
+import { base, optimism } from 'viem/chains';
+import { Executor } from './src/bot/executor';
+import { buy } from './src/utils/uniswapv2';
 
-const optimismWalletClient = chainIDToWalletClient.get(10)?.extend(walletActionsL2());
-const baseWalletClient = chainIDToWalletClient.get(8453)?.extend(walletActionsL2());
+// const optimismPublicClient = chainIDToPublicClient.get(10)?.extend(publicActionsL2());
+// const basePublicClient = chainIDToPublicClient.get(8453)?.extend(publicActionsL2());
 
-const SuperchainArbitrage = () => {
-    // start supersim
+// const optimismWalletClient = chainIDToWalletClient.get(10)?.extend(walletActionsL2());
 
-    // deploy serc20 token
+const AMOUNT_LIQUIDITY_ETH = 100000000000000000n;
+const AMOUNT_LIQUIDITY_TOKEN = 50000000000000000000000n;
+const AMOUNT_FAT_FINGER = 1000000000000000000n;
 
-    // bridge half of serc20 to chain B
+const basePublicClient = createPublicClient({
+	chain: base,
+	transport: http(chainIDToRPCUrls.get(8453) as string),
+}).extend(publicActionsL2());
 
+const optimismPublicClient = createPublicClient({
+	chain: optimism,
+	transport: http(chainIDToRPCUrls.get(10) as string),
+}).extend(publicActionsL2());
 
-    // add liquidity on both chains
+const optimismWalletClient = createWalletClient({
+	chain: optimism,
+	transport: http(chainIDToRPCUrls.get(10) as string),
+}).extend(walletActionsL2());
 
-    // deploy executor
+const baseWalletClient = createWalletClient({
+	chain: base,
+	transport: http(chainIDToRPCUrls.get(8453) as string),
+}).extend(walletActionsL2());
 
-    // fat finger buy on chain B
-}
+const SuperchainArbitrage = async () => {
+	// start the supersim
+	// deploy superchainerc20 token
+	const tokenAddress = `0x`;
+	// mint tokens
+
+	const mintTokensHashBase = await baseWalletClient.writeContract({
+		address: tokenAddress,
+		abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
+		functionName: 'mintTo',
+		account: DEPLOYER_ACCOUNT,
+		args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
+	});
+
+	const mintTokensHashOptimism = await optimismWalletClient.writeContract({
+		address: tokenAddress,
+		abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
+		functionName: 'mintTo',
+		account: DEPLOYER_ACCOUNT,
+		args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
+	});
+
+	// add liquidity on both chains
+	const addLiquidityOptimismHash = await addLiquidity(
+		AMOUNT_LIQUIDITY_ETH,
+		tokenAddress,
+		AMOUNT_LIQUIDITY_TOKEN,
+		10,
+		DEPLOYER_ACCOUNT,
+	);
+	const addLiquidityBaseHash = await addLiquidity(
+		AMOUNT_LIQUIDITY_ETH,
+		tokenAddress,
+		AMOUNT_LIQUIDITY_TOKEN,
+		8453,
+		DEPLOYER_ACCOUNT,
+	);
+	// deploy executor
+
+	const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
+		[
+			tokenAddress,
+			[
+				{
+					chainId: 10,
+					dexName: 'UniswapV2',
+					feesBPS: 0.03,
+				},
+				{
+					chainId: 8453,
+					dexName: 'UniswapV2',
+					feesBPS: 0.03,
+				},
+			],
+		],
+	]);
+
+	const executor = new Executor(tokensAndInstances);
+	executor.setup();
+	// simulate a fat finger on optimism
+
+	const fatFingerHash = await buy(
+		optimismWalletClient,
+		FAT_FINGER_ACCOUNT,
+		AMOUNT_FAT_FINGER,
+		tokenAddress,
+		10,
+	);
+
+	// see if it executes and log the result
+};
 
 SuperchainArbitrage();
