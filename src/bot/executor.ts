@@ -101,15 +101,19 @@ export class Executor {
 		const tokenAndV2Instances: TokenAndV2Instance[] = v2Instances.map((v2Instance) => {
 			return { ca: ca, v2Instance: v2Instance };
 		});
-		const priceUpdates: V2PoolReservesUpdate[] = tokenAndV2Instances.map(
-			(tokenAndV2Instance) => {
+		const priceUpdates: V2PoolReservesUpdate[] = tokenAndV2Instances
+			.map((tokenAndV2Instance) => {
 				const update = this.latestPriceUpdates.get(tokenAndV2Instance);
 				if (!update) {
 					return;
 				}
 				return update as V2PoolReservesUpdate;
-			},
-		) as V2PoolReservesUpdate[];
+			})
+			.filter(
+				(update): update is V2PoolReservesUpdate => update !== null,
+			) as V2PoolReservesUpdate[];
+
+		// eliminate undefined elements from priceUpdates
 
 		if (!priceUpdates) {
 			return;
