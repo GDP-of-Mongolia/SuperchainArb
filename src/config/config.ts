@@ -98,4 +98,4 @@ export const FAT_FINGER_ACCOUNT = privateKeyToAccount('0x5de4111afa1a4b94908f831
 // EXTEND PUBLIC ACTIONS L2,
 export const BRIDGE_SWAP_CONTRACT = '0x4dc19314fc3019571e951e31dc514e0374d47d47';
 
-export const TOKEN_ADDRESS = '0xa1d05af1ea495de47e704ffda7f21bead40c4201';
+export const TOKEN_ADDRESS = '0x343bd8d187d7c10b607b0d9bacf1ae912244f90a';
