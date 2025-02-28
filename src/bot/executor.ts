@@ -97,7 +97,7 @@ export class Executor {
 		this.checkArb(update.weth == 0 ? update.token1 : update.token0, tokenAndV2Instances);
 	};
 
-	checkArb = (ca: `0x${string}`, v2Instances: V2Instance[]) => {
+	checkArb = async (ca: `0x${string}`, v2Instances: V2Instance[]) => {
 		const tokenAndV2Instances: TokenAndV2Instance[] = v2Instances.map((v2Instance) => {
 			return { ca: ca, v2Instance: v2Instance };
 		});
@@ -121,7 +121,7 @@ export class Executor {
 			if (!arb) {
 				continue;
 			}
-			this.executeArb(arb);
+			await this.executeArb(arb);
 		}
 	};
 
@@ -185,6 +185,8 @@ export class Executor {
 		});
 
 		const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+		console.log('Arb executed with receipt: ', receipt);
+		return receipt;
 	};
 
 	closeListeners = () => {
