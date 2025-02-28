@@ -40,6 +40,13 @@ export const pairFor = (
     const factoryAddress = UNISWAP_V2_FACTORY_ADDRESSES.get(chainId)!;
     const initCodeHash = INIT_CODE_HASHES.get(chainId)!;
 
+    if (!factoryAddress) {
+        console.warn('No factory address found for chainId:', chainId);
+    }
+    if (!initCodeHash) {
+        console.warn('No init code hash found for chainId:', chainId);
+    }
+
     const pairAddress = getCreate2Address({
         from: factoryAddress,
         bytecodeHash: initCodeHash,
