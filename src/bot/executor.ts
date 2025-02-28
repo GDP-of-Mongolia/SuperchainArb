@@ -204,6 +204,9 @@ const getPriceUpdatePairs = (priceUpdates: V2PoolReservesUpdate[]) => {
 	const pairs = [];
 	for (let i = 0; i < priceUpdates.length; i++) {
 		for (let j = i + 1; j < priceUpdates.length; j++) {
+			if (!priceUpdates[i] || !priceUpdates[j]) {
+				continue;
+			}
 			pairs.push([priceUpdates[i], priceUpdates[j]]);
 			pairs.push([priceUpdates[j], priceUpdates[i]]);
 		}
