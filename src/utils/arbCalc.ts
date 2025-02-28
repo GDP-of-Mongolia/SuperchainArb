@@ -13,6 +13,7 @@ export interface V2Instance {
 	chainId: number;
 	dexName?: string;
 	feesBPS: number;
+	routerAddress: `0x${string}`;
 }
 
 export interface V2PoolReservesUpdate {
@@ -24,21 +25,21 @@ export interface V2PoolReservesUpdate {
 	v2Instance: V2Instance;
 }
 
-interface BridgeSuperchainERC20Ins {
+export interface BridgeSuperchainERC20Ins {
 	fromChainID: number;
 	toChainID: number;
 	ca: `0x${string}`;
 	amount: bigint;
 }
 
-interface BridgeSuperchainWETHIns {
+export interface BridgeSuperchainWETHIns {
 	fromChainID: number;
 	toChainID: number;
 	amount: bigint;
 }
 
 // assuming swapExactETHForTokens
-interface SwapV2Ins {
+export interface SwapV2Ins {
 	v2Instance: V2Instance;
 	path: `0x${string}`[]; // length 2 for testing
 	amountIn: bigint; // ETH amount
