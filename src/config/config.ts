@@ -89,11 +89,11 @@ export const chainIDtoChain = new Map<number, Chain>([
     [8453, base],
 ]);
 
-export const DEPLOYER_ACCOUNT = privateKeyToAccount('0x');
+export const DEPLOYER_ACCOUNT = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
 
-export const ARBITRAGEOUR_ACCOUNT = privateKeyToAccount('0x');
+export const ARBITRAGEOUR_ACCOUNT = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
 
-export const FAT_FINGER_ACCOUNT = privateKeyToAccount('0x');
+export const FAT_FINGER_ACCOUNT = privateKeyToAccount('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a');
 
 // EXTEND PUBLIC ACTIONS L2,
 export const BRIDGE_SWAP_CONTRACT = '0x4dc19314fc3019571e951e31dc514e0374d47d47';
