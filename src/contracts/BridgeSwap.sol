@@ -7,6 +7,8 @@ import { ISuperchainWETH } from 'lib/eth-optimism-contracts-bedrock/packages/con
 import { IL2ToL2CrossDomainMessenger } from 'lib/eth-optimism-contracts-bedrock/packages/contracts-bedrock/interfaces/L2/IL2ToL2CrossDomainMessenger.sol';
 import { CrossDomainMessageLib } from 'lib/interop-lib/src/libraries/CrossDomainMessageLib.sol';
 
+import { IERC20 } from 'lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol';
+
 interface IUniswapV2Router02 {
 	function swapExactETHForTokens(
 		uint amountOutMin,
@@ -28,13 +30,10 @@ contract SwapAndBridge {
 	ISuperchainTokenBridge bridgeInterface =
 		ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
-	ISuperchainWETH wethInterface = ISuperchainWETH(Predeploys.SUPERCHAIN_WETH);
+	ISuperchainWETH wethInterface = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
 
-	// Do we have some sort of mapping to get the router address
-	IUniswapV2Router02 routerInterface = IUniswapV2Router02();
-
-	IL2toL2CrossDomainMessenger messengerInterface =
-		IL2toL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+	IL2ToL2CrossDomainMessenger messengerInterface =
+		IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
 	function swapAndBridge(
 		address owner,
@@ -49,17 +48,18 @@ contract SwapAndBridge {
 	) external {
 		IUniswapV2Router02 originRouter = IUniswapV2Router02(originRouterV2);
 
-		IUniswapV2Router02 destRouter = IUniswapV2Router02(destRouterV2);
-
-		address[] path = [PredeployAddresses.SUPERCHAIN_WETH, token];
+		address[] memory path = new address[](2);
+		// path = [Predeploys.SUPERCHAIN_WETH, token]
+		path[0] = Predeploys.SUPERCHAIN_WETH;
+		path[1] = token;
 
 		// Transfer tokenIn from the caller to this contract.
-		require(IERC20(tokenIn).transferFrom(msg.sender, address(this), amount), 'Transfer failed');
+		require(IERC20(token).transferFrom(msg.sender, address(this), amount), 'Transfer failed');
 
 		// Approve the Uniswap router to spend tokenIn.
-		require(IERC20(tokenIn).approve(address(this), amountIn), 'Approval failed');
+		require(IERC20(token).approve(address(this), amount), 'Approval failed');
 
-		uint[] memory amounts1 = originRouter.swapExactETHForTokens{ value: amount }(
+		uint[] memory amounts = originRouter.swapExactETHForTokens{ value: amount }(
 			0,
 			path,
 			owner,
@@ -85,18 +85,18 @@ contract SwapAndBridge {
 					'SwapAndBridgeBack(address,address,addresss,uint256,uint256,uint256,address,address,address,bytes32)'
 				)
 			),
-			recepient,
+			recipient,
 			token,
 			owner,
 			swappedAmount,
-			destinationChainID,
-			originChainID,
+			destinationChainId,
+			originChainId,
 			destRouterV2,
 			originRouterV2,
 			msgHash
 		);
 
-		messengerInterface.sendMessage(destinationChainId, destContract, message);
+		messengerInterface.sendMessage(destinationChainId, destContract, messageData);
 	}
 
 	function SwapAndBridgeBack(
@@ -119,11 +119,11 @@ contract SwapAndBridge {
 
 		IUniswapV2Router02 originRouter = IUniswapV2Router02(originRouterV2);
 
-		IUniswapV2Router02 destRouter = IUniswapV2Router02(destRouterV2);
+		address[] memory path = new address[](2);
+		path[0] = token;
+		path[1] = Predeploys.SUPERCHAIN_WETH;
 
-		address[] path = [token, PredeployAddresses.SUPERCHAIN_WETH];
-
-		uint[] memory amounts1 = originRouter.swapExactTokensForETH(
+		uint[] memory amounts = originRouter.swapExactTokensForETH(
 			amount,
 			0,
 			path,
@@ -135,9 +135,9 @@ contract SwapAndBridge {
 
 		require(swappedAmount > 0, 'Swap returned zero tokens');
 
-		bytes32 msgHash = wethBridge.sendWETH{ value: swappedAmount }(
+		bytes32 msgHash = wethInterface.sendETH{ value: swappedAmount }(
 			recipient,
-			destinationChainID
+			destinationChainId
 		);
 
 		// uint[] memory amounts2 = destRouter.swapExactTokensForETH()
