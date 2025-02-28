@@ -136,14 +136,18 @@ export class Executor {
 	// 	address destContract
 	// )
 	executeArb = async (execution: V2ArbExecution) => {
+		console.log('Executing arb.');
 		const partialABI = parseAbi([
 			'function swapAndBridge(address owner, address token, address recipient, uint256 amount, uint256 originChainId, uint256 destinationChainId, address originRouterV2, address destRouterV2, address destContract)',
 		]);
 
 		const ca = (execution.instructions[0] as SwapV2Ins).path[1];
+		console.log('contract address', ca);
 		const amount = (execution.instructions[0] as SwapV2Ins).amountIn;
+		console.log('amount', amount);
 		const originChainID = (execution.instructions[1] as BridgeSuperchainERC20Ins).fromChainID;
 		const destChainID = (execution.instructions[1] as BridgeSuperchainERC20Ins).toChainID;
+		console.log('originChainID', originChainID, 'destChainID', destChainID);
 		const originRouterV2 = (execution.instructions[0] as SwapV2Ins).v2Instance.routerAddress;
 		const destinationRouterV2 = (execution.instructions[2] as SwapV2Ins).v2Instance
 			.routerAddress;

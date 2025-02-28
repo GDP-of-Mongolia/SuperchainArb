@@ -66,6 +66,10 @@ export const evaluateV2ArbOppurtunity = (
 	// assuming the tokens have 18 decimals
 	// Double check bigint and number logic
 	// assuming the tokens are the same
+	console.log('Evaluating arbitrage opportunity between two pools...');
+	console.log('Pool 1:', JSON.stringify(updateOne, null, 2));
+	console.log('Pool 2:', JSON.stringify(updateTwo, null, 2));
+
 	const ethReserveA = updateOne.weth === 0 ? updateOne.reserve0 : updateOne.reserve1;
 	const ethReserveANum = Number(formatEther(ethReserveA));
 
@@ -77,7 +81,12 @@ export const evaluateV2ArbOppurtunity = (
 	const tokenReserveB = updateTwo.weth === 0 ? updateTwo.reserve1 : updateTwo.reserve0;
 	const tokenReserveBNum = Number(formatEther(tokenReserveB));
 
+	console.log(`ETH Reserve A: ${ethReserveANum}, Token Reserve A: ${tokenReserveANum}`);
+	console.log(`ETH Reserve B: ${ethReserveBNum}, Token Reserve B: ${tokenReserveBNum}`);
+
 	const fees = updateOne.v2Instance.feesBPS;
+
+	console.log(`Assumed Fees: ${fees} BPS`);
 
 	const c =
 		(ethReserveANum * tokenReserveBNum) ** (ethReserveANum * tokenReserveBNum) -
@@ -92,7 +101,15 @@ export const evaluateV2ArbOppurtunity = (
 	const a = k * k;
 	const idealAmountInNum = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
 
+	console.log(`Calculated ideal amount in: ${idealAmountInNum}`);
+
+	if (isNaN(idealAmountInNum) || idealAmountInNum <= 0) {
+		console.warn('Ideal amount in calculation resulted in NaN or negative value, skipping...');
+		return null;
+	}
+
 	const idealAmountIn = parseEther(idealAmountInNum.toString());
+	console.log(`Ideal amount in (bigint): ${idealAmountIn}`);
 
 	const amountTokenOutChainA = getAmountOut(
 		idealAmountIn,
@@ -100,6 +117,8 @@ export const evaluateV2ArbOppurtunity = (
 		tokenReserveA,
 		updateOne.v2Instance.feesBPS,
 	);
+	console.log(`Amount token out on chain A: ${amountTokenOutChainA}`);
+
 	const amountETHOutChainB = getAmountOut(
 		amountTokenOutChainA,
 		tokenReserveB,
@@ -107,9 +126,14 @@ export const evaluateV2ArbOppurtunity = (
 		updateTwo.v2Instance.feesBPS,
 	);
 
+	console.log(`Amount ETH out on chain B: ${amountETHOutChainB}`);
+
 	const estimatedProfit = amountETHOutChainB - idealAmountIn;
 
+	console.log(`Estimated profit: ${estimatedProfit}`);
+
 	if (estimatedProfit > 0) {
+		console.log('Arbitrage opportunity detected! Returning execution plan...');
 		return {
 			instructions: [
 				// SWAP
@@ -152,6 +176,6 @@ export const evaluateV2ArbOppurtunity = (
 			estimatedProfit,
 		};
 	}
-
+	console.log('No profitable arbitrage opportunity found.');
 	return null;
 };
