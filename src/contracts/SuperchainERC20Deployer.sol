@@ -124,7 +124,7 @@ contract SuperchainERC20Deployer is Script {
 
 		string memory obj = 'result';
 		vm.serializeAddress(obj, 'deployedAddress', deployedAddress);
-		vm.serializeAddress(obj, 'bridgeAddress', deployedAddress);
+		vm.serializeAddress(obj, 'bridgeAddress', bridgeAddress);
 		string memory jsonOutput = vm.serializeAddress(obj, 'ownerAddress', ownerAddr);
 
 		vm.writeJson(jsonOutput, 'deployment.json');
