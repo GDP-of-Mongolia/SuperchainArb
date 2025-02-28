@@ -13,10 +13,10 @@ contract SuperchainERC20Deployer is Script {
 	constructor() {
 		string memory deployConfigPath = vm.envOr(
 			'DEPLOY_CONFIG_PATH',
-			string('./deploy-config.toml')
+			string('/src/config/deploy-config.toml')
 		);
-		//string memory filePath = string.concat(vm.projectRoot(), deployConfigPath);
-		string memory filePath = deployConfigPath;
+		string memory filePath = string.concat(vm.projectRoot(), deployConfigPath);
+		// string memory filePath = deployConfigPath;
 		deployConfig = vm.readFile(filePath);
 	}
 

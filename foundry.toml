@@ -1,0 +1,25 @@
+[rpc_endpoints]
+op = "http://127.0.0.1:9545"
+base = "http://127.0.0.1:9546"
+
+[profile.default]
+src = "src"
+script = "scripts"
+out = "out"
+libs = ["lib"]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+fs_permissions = [
+  { access='read', path='/src/config/deploy-config.toml' },
+  { access='read', path='./test' },
+  { access='write', path='./deployment.json' },
+  { access='read', path='./' }
+]
+
+remappings = [
+  "@interop-lib/=lib/interop-lib/src/",
+  "@solady/=lib/solady/src/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "@eth-optimism/contracts-bedrock/=lib/eth-optimism-contracts-bedrock/packages/contracts-bedrock",
+]
