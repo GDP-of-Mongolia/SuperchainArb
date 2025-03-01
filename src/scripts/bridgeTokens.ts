@@ -1,2 +1,0 @@
-// do we bridge using typescript, or do we do it using the smart contract. I already know how to do it using ts, 
-// it would also be convineint to do swaps using ts, so we have to make that consideration.

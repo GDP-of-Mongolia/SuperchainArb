@@ -33,7 +33,10 @@ import {
 import { watchSyncEvents } from '../utils/monitor';
 import { BRIDGE_SWAP_CONTRACT, chainIDToRPCUrls, chainIDtoChain } from '../config/config';
 import { BRIDGE_SWAP_ABI } from '../constants/abi/BridgeSwapABI';
+import { WETH_ADDRESSES } from '../constants/addresses';
 // import { chainIDToPublicClient } from "../config/config";
+
+export const IGNORE_TX_HASHES = new Set<`0x${string}`>();
 
 export interface TokenAndV2Instance {
     ca: `0x${string}`;
@@ -101,6 +104,10 @@ export class Executor {
             tokenAndV2InstanceToString({ ca: update.weth == 0 ? update.token1 : update.token0, v2Instance: currV2Insance }),
             update,
         );
+
+        if (update.txHash && IGNORE_TX_HASHES.has(update.txHash)) {
+            return;
+        }
         this.checkArb(update.weth == 0 ? update.token1 : update.token0, tokenAndV2Instances);
     };
 
@@ -153,33 +160,43 @@ export class Executor {
     executeArb = async (execution: V2ArbExecution) => {
         console.log('Executing arb.');
         const partialABI = parseAbi([
-            'function swapAndBridge(address owner, address token, address recipient, uint256 amount, uint256 originChainId, uint256 destinationChainId, address originRouterV2, address destRouterV2, address destContract)',
+            'function swapAndBridge(address ethAddress, address owner, address token, address recipient, uint256 amount, uint256 originChainId, uint256 destinationChainId, address originRouterV2, address destRouterV2, address destContract)',
         ]);
 
         const ca = (execution.instructions[0] as SwapV2Ins).path[1];
+        const amountIn = (execution.instructions[0] as SwapV2Ins).amountIn;
         console.log('contract address', ca);
         const amount = (execution.instructions[0] as SwapV2Ins).amountIn;
         console.log('amount', amount);
         const originChainID = (execution.instructions[1] as BridgeSuperchainERC20Ins).fromChainID;
         const destChainID = (execution.instructions[1] as BridgeSuperchainERC20Ins).toChainID;
         console.log('originChainID', originChainID, 'destChainID', destChainID);
+        const ethAddress = WETH_ADDRESSES.get(originChainID);
+        if (!ethAddress) {
+            return;
+        }
         const originRouterV2 = (execution.instructions[0] as SwapV2Ins).v2Instance.routerAddress;
         const destinationRouterV2 = (execution.instructions[2] as SwapV2Ins).v2Instance
             .routerAddress;
 
+        const publicClient = createPublicClient({
+            chain: chainIDtoChain.get(originChainID),
+            transport: http(chainIDToRPCUrls.get(originChainID) as string),
+        });
         const walletClient = createWalletClient({
             chain: chainIDtoChain.get(originChainID),
             transport: http(chainIDToRPCUrls.get(originChainID) as string),
         });
 
-        const txHash = await walletClient.writeContract({
+
+        const { request, result } = await publicClient.simulateContract({
             address: BRIDGE_SWAP_CONTRACT,
-            abi: partialABI,
+            abi: BRIDGE_SWAP_ABI,
             functionName: 'swapAndBridge',
             args: [
+                ethAddress,
                 this.arbAccount.address,
                 ca,
-                this.arbAccount.address,
                 amount,
                 BigInt(originChainID),
                 BigInt(destChainID),
@@ -190,13 +207,15 @@ export class Executor {
             gas: 500000n,
             account: this.arbAccount,
             chain: walletClient.chain,
-        });
+            value: amountIn,
+        })
+        const txHash = await walletClient.writeContract(request);
+
+        IGNORE_TX_HASHES.add(txHash);
+
 
         console.log('Arb executed with txHash: ', txHash);
-        const publicClient = createPublicClient({
-            chain: chainIDtoChain.get(originChainID),
-            transport: http(chainIDToRPCUrls.get(originChainID) as string),
-        });
+
 
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
         console.log('Arb executed with receipt: ', receipt);

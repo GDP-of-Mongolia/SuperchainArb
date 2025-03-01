@@ -96,6 +96,6 @@ export const ARBITRAGEOUR_ACCOUNT = privateKeyToAccount('0x59c6995e998f97a5a0044
 export const FAT_FINGER_ACCOUNT = privateKeyToAccount('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a');
 
 // EXTEND PUBLIC ACTIONS L2,
-export const BRIDGE_SWAP_CONTRACT = '0x0a7583104ae2e4bd484c68799a268a0d90905491';
+export const BRIDGE_SWAP_CONTRACT = '0x181ca975ae6bfceaef23dcfac60e244a3549d097';
 
-export const TOKEN_ADDRESS = '0x5a27d2c4a039ef7b922cffcabb82ca2db6196c07';
+export const TOKEN_ADDRESS = '0xfdf1980e286a3a7b78364fc6ce20cddc6d42501c';

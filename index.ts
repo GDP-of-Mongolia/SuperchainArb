@@ -11,31 +11,33 @@
  */
 
 import {
-	DEPLOYER_ACCOUNT,
-	FAT_FINGER_ACCOUNT,
-	chainIDToRPCUrls,
-	chainIDToWalletClient,
-	ARBITRAGEOUR_ACCOUNT,
-	TOKEN_ADDRESS,
+    DEPLOYER_ACCOUNT,
+    FAT_FINGER_ACCOUNT,
+    chainIDToRPCUrls,
+    chainIDToWalletClient,
+    ARBITRAGEOUR_ACCOUNT,
+    TOKEN_ADDRESS,
+    BRIDGE_SWAP_CONTRACT,
 } from './src/config/config';
 import {
-	type PublicClient,
-	createPublicClient,
-	http,
-	createWalletClient,
-	parseAbiItem,
-	parseAbi,
+    type PublicClient,
+    createPublicClient,
+    http,
+    createWalletClient,
+    parseAbiItem,
+    parseAbi,
+    erc20Abi,
 } from 'viem';
 import { addLiquidity } from './src/utils/deployPools';
 import { type V2Instance } from './src/utils/arbCalc';
 
 import {
-	contracts,
-	publicActionsL2,
-	walletActionsL2,
-	createInteropSentL2ToL2Messages,
-	decodeRelayedL2ToL2Messages,
-	superchainERC20Abi,
+    contracts,
+    publicActionsL2,
+    walletActionsL2,
+    createInteropSentL2ToL2Messages,
+    decodeRelayedL2ToL2Messages,
+    superchainERC20Abi,
 } from '@eth-optimism/viem';
 
 import { base, optimism } from 'viem/chains';
@@ -53,116 +55,140 @@ const AMOUNT_LIQUIDITY_TOKEN = 50000000000000000000000n;
 const AMOUNT_FAT_FINGER = 1000000000000000000n;
 
 const basePublicClient = createPublicClient({
-	chain: base,
-	transport: http(chainIDToRPCUrls.get(8453) as string),
+    chain: base,
+    transport: http(chainIDToRPCUrls.get(8453) as string),
 }).extend(publicActionsL2());
 
 const optimismPublicClient = createPublicClient({
-	chain: optimism,
-	transport: http(chainIDToRPCUrls.get(10) as string),
+    chain: optimism,
+    transport: http(chainIDToRPCUrls.get(10) as string),
 }).extend(publicActionsL2());
 
 const optimismWalletClient = createWalletClient({
-	chain: optimism,
-	transport: http(chainIDToRPCUrls.get(10) as string),
+    chain: optimism,
+    transport: http(chainIDToRPCUrls.get(10) as string),
 }).extend(walletActionsL2());
 
 const baseWalletClient = createWalletClient({
-	chain: base,
-	transport: http(chainIDToRPCUrls.get(8453) as string),
+    chain: base,
+    transport: http(chainIDToRPCUrls.get(8453) as string),
 }).extend(walletActionsL2());
 
 const SuperchainArbitrage = async () => {
-	// start the supersim
-	// deploy superchainerc20 token
-	const tokenAddress = TOKEN_ADDRESS;
-	// mint tokens
+    // start the supersim
+    // deploy superchainerc20 token
+    const tokenAddress = TOKEN_ADDRESS;
+    // mint tokens
 
-	const mintTokensHashBase = await baseWalletClient.writeContract({
-		address: tokenAddress,
-		abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
-		functionName: 'mintTo',
-		account: DEPLOYER_ACCOUNT,
-		args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
-	});
+    const mintTokensHashBase = await baseWalletClient.writeContract({
+        address: tokenAddress,
+        abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
+        functionName: 'mintTo',
+        account: DEPLOYER_ACCOUNT,
+        args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
+    });
 
-	console.log('mintTokensHashBase', mintTokensHashBase);
+    console.log('mintTokensHashBase', mintTokensHashBase);
 
-	const mintTokensHashOptimism = await optimismWalletClient.writeContract({
-		address: tokenAddress,
-		abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
-		functionName: 'mintTo',
-		account: DEPLOYER_ACCOUNT,
-		args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
-	});
+    const mintTokensHashOptimism = await optimismWalletClient.writeContract({
+        address: tokenAddress,
+        abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
+        functionName: 'mintTo',
+        account: DEPLOYER_ACCOUNT,
+        args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
+    });
 
-	console.log('mintTokensHashOptimism', mintTokensHashOptimism);
+    console.log('mintTokensHashOptimism', mintTokensHashOptimism);
 
-	// add liquidity on both chains
-	const addLiquidityOptimismHash = await addLiquidity(
-		AMOUNT_LIQUIDITY_ETH,
-		tokenAddress,
-		AMOUNT_LIQUIDITY_TOKEN,
-		10,
-		DEPLOYER_ACCOUNT,
-	);
+    // approving our contract to send tokens
 
-	console.log('addLiquidityOptimismHash', addLiquidityOptimismHash);
-	const addLiquidityBaseHash = await addLiquidity(
-		AMOUNT_LIQUIDITY_ETH,
-		tokenAddress,
-		AMOUNT_LIQUIDITY_TOKEN,
-		8453,
-		DEPLOYER_ACCOUNT,
-	);
+    const approveHashBase = await baseWalletClient.writeContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: 'approve',
+        account: ARBITRAGEOUR_ACCOUNT,
+        args: [
+            BRIDGE_SWAP_CONTRACT,
+            115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+        ],
+    });
 
-	console.log('addLiquidityBaseHash', addLiquidityBaseHash);
-	// deploy executor
+    const approveHashOptimism = await optimismWalletClient.writeContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: 'approve',
+        account: ARBITRAGEOUR_ACCOUNT,
+        args: [
+            BRIDGE_SWAP_CONTRACT,
+            115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+        ],
+    });
 
-	const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
-		[
-			tokenAddress,
-			[
-				{
-					chainId: 10,
-					dexName: 'UniswapV2',
-					feesBPS: 0.03,
-					routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(10) as `0x${string}`,
-				},
-				{
-					chainId: 8453,
-					dexName: 'UniswapV2',
-					feesBPS: 0.03,
-					routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(8453) as `0x${string}`,
-				},
-			],
-		],
-	]);
+    // add liquidity on both chains
+    const addLiquidityOptimismHash = await addLiquidity(
+        AMOUNT_LIQUIDITY_ETH,
+        tokenAddress,
+        AMOUNT_LIQUIDITY_TOKEN,
+        10,
+        DEPLOYER_ACCOUNT,
+    );
 
-	const executor = new Executor(tokensAndInstances, ARBITRAGEOUR_ACCOUNT);
-	executor.setup();
+    console.log('addLiquidityOptimismHash', addLiquidityOptimismHash);
+    const addLiquidityBaseHash = await addLiquidity(
+        AMOUNT_LIQUIDITY_ETH,
+        tokenAddress,
+        AMOUNT_LIQUIDITY_TOKEN,
+        8453,
+        DEPLOYER_ACCOUNT,
+    );
 
-	console.log('executor setup done.');
+    console.log('addLiquidityBaseHash', addLiquidityBaseHash);
+    // deploy executor
 
-	// simulate a fat finger on optimism
+    const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
+        [
+            tokenAddress,
+            [
+                {
+                    chainId: 10,
+                    dexName: 'UniswapV2',
+                    feesBPS: 0.03,
+                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(10) as `0x${string}`,
+                },
+                {
+                    chainId: 8453,
+                    dexName: 'UniswapV2',
+                    feesBPS: 0.03,
+                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(8453) as `0x${string}`,
+                },
+            ],
+        ],
+    ]);
 
-	const fatFingerHash = (await buy(
-		optimismWalletClient,
-		FAT_FINGER_ACCOUNT,
-		AMOUNT_FAT_FINGER,
-		tokenAddress,
-		10,
-	)) as `0x${string}`;
+    const executor = new Executor(tokensAndInstances, ARBITRAGEOUR_ACCOUNT);
+    executor.setup();
 
-	const fatFingerReceipt = await optimismPublicClient.waitForTransactionReceipt({
-		hash: fatFingerHash,
-	});
+    console.log('executor setup done.');
 
-	console.log(fatFingerReceipt);
+    // simulate a fat finger on optimism
 
-	console.log('fatFingerHash', fatFingerHash);
+    const fatFingerHash = (await buy(
+        optimismWalletClient,
+        FAT_FINGER_ACCOUNT,
+        AMOUNT_FAT_FINGER,
+        tokenAddress,
+        10,
+    )) as `0x${string}`;
 
-	// see if it executes and log the result
+    const fatFingerReceipt = await optimismPublicClient.waitForTransactionReceipt({
+        hash: fatFingerHash,
+    });
+
+    // console.log(fatFingerReceipt);
+
+    // console.log('fatFingerHash', fatFingerHash);
+
+    // see if it executes and log the result
 };
 
 SuperchainArbitrage();
