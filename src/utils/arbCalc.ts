@@ -7,44 +7,58 @@
 import { formatEther, parseEther } from 'viem';
 import { getAmountOut } from './uniswapv2';
 
+import winston from 'winston';
+
+const logger = winston.createLogger({
+	level: 'info',
+	format: winston.format.combine(
+		winston.format.timestamp({ format: 'HH:mm:ss' }),
+		winston.format.printf(({ timestamp, level, message }) => {
+			return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+		}),
+		winston.format.colorize({ all: true }),
+	),
+	transports: [new winston.transports.Console()],
+});
+
 // Define our interfaces
 
 export interface V2Instance {
-  chainId: number;
-  dexName?: string;
-  feesBPS: number;
-  routerAddress: `0x${string}`;
+	chainId: number;
+	dexName?: string;
+	feesBPS: number;
+	routerAddress: `0x${string}`;
 }
 
 export interface V2PoolReservesUpdate {
-  token0: `0x${string}`;
-  token1: `0x${string}`;
-  weth: 0 | 1;
-  reserve0: bigint; // e.g. amount of ETH if token0 is ETH
-  reserve1: bigint; // e.g. amount of tokenA
-  v2Instance: V2Instance;
-  txHash?: `0x${string}`
+	token0: `0x${string}`;
+	token1: `0x${string}`;
+	weth: 0 | 1;
+	reserve0: bigint; // e.g. amount of ETH if token0 is ETH
+	reserve1: bigint; // e.g. amount of tokenA
+	v2Instance: V2Instance;
+	txHash?: `0x${string}`;
 }
 
 export interface BridgeSuperchainERC20Ins {
-  fromChainID: number;
-  toChainID: number;
-  ca: `0x${string}`;
-  amount: bigint;
+	fromChainID: number;
+	toChainID: number;
+	ca: `0x${string}`;
+	amount: bigint;
 }
 
 export interface BridgeSuperchainWETHIns {
-  fromChainID: number;
-  toChainID: number;
-  amount: bigint;
+	fromChainID: number;
+	toChainID: number;
+	amount: bigint;
 }
 
 // assuming swapExactETHForTokens
 export interface SwapV2Ins {
-  v2Instance: V2Instance;
-  path: `0x${string}`[]; // length 2 for testing
-  amountIn: bigint; // ETH amount
-  minAmountOut: bigint;
+	v2Instance: V2Instance;
+	path: `0x${string}`[]; // length 2 for testing
+	amountIn: bigint; // ETH amount
+	minAmountOut: bigint;
 }
 
 type V2ArbPathInstruction = BridgeSuperchainERC20Ins | SwapV2Ins | BridgeSuperchainWETHIns;
@@ -52,145 +66,156 @@ type V2ArbPathInstruction = BridgeSuperchainERC20Ins | SwapV2Ins | BridgeSuperch
 export type V2ArbOppurtityResult = V2ArbExecution | null;
 
 export interface V2ArbExecution {
-  instructions: V2ArbPathInstruction[];
-  estimatedProfit: bigint;
+	instructions: V2ArbPathInstruction[];
+	estimatedProfit: bigint;
 }
 
 /**
  *
  */
 export const evaluateV2ArbOppurtunity = (
-  updateOne: V2PoolReservesUpdate,
-  updateTwo: V2PoolReservesUpdate,
+	updateOne: V2PoolReservesUpdate,
+	updateTwo: V2PoolReservesUpdate,
 ): V2ArbOppurtityResult => {
-  // assuming the fees are the same for now
-  // assuming the tokens have 18 decimals
-  // Double check bigint and number logic
-  // assuming the tokens are the same
-  console.log('Evaluating arbitrage opportunity between two pools...');
-  console.log('Pool 1:', updateOne);
-  console.log('Pool 2:', updateTwo);
+	// assuming the fees are the same for now
+	// assuming the tokens have 18 decimals
+	// Double check bigint and number logic
+	// assuming the tokens are the same
 
-  const ethReserveA = updateOne.weth === 0 ? updateOne.reserve0 : updateOne.reserve1;
-  const ethReserveANum = Number(formatEther(ethReserveA));
+	logger.info(
+		`Evaluating arb oppurtinity for ca: ${updateOne.weth === 0 ? updateOne.token1 : updateOne.token0} in direction ${updateOne.v2Instance.chainId} -> ${updateTwo.v2Instance.chainId}`,
+	);
 
-  const ethReserveB = updateTwo.weth === 0 ? updateTwo.reserve0 : updateTwo.reserve1;
-  const ethReserveBNum = Number(formatEther(ethReserveB));
+	const ethReserveA = updateOne.weth === 0 ? updateOne.reserve0 : updateOne.reserve1;
+	const ethReserveANum = Number(formatEther(ethReserveA));
 
-  const tokenReserveA = updateOne.weth === 0 ? updateOne.reserve1 : updateOne.reserve0;
-  const tokenReserveANum = Number(formatEther(tokenReserveA));
-  const tokenReserveB = updateTwo.weth === 0 ? updateTwo.reserve1 : updateTwo.reserve0;
-  const tokenReserveBNum = Number(formatEther(tokenReserveB));
+	const ethReserveB = updateTwo.weth === 0 ? updateTwo.reserve0 : updateTwo.reserve1;
+	const ethReserveBNum = Number(formatEther(ethReserveB));
 
-  console.log(`ETH Reserve A: ${ethReserveANum}, Token Reserve A: ${tokenReserveANum}`);
-  console.log(`ETH Reserve B: ${ethReserveBNum}, Token Reserve B: ${tokenReserveBNum}`);
+	const tokenReserveA = updateOne.weth === 0 ? updateOne.reserve1 : updateOne.reserve0;
+	const tokenReserveANum = Number(formatEther(tokenReserveA));
+	const tokenReserveB = updateTwo.weth === 0 ? updateTwo.reserve1 : updateTwo.reserve0;
+	const tokenReserveBNum = Number(formatEther(tokenReserveB));
 
-  const fees = updateOne.v2Instance.feesBPS;
+	logger.info(
+		`ETH Reserve source chain: ${ethReserveANum}, Token Reserve source chain: ${tokenReserveANum}`,
+	);
+	logger.info(
+		`ETH Reserve destination chain: ${ethReserveBNum}, Token Reserve destination chain: ${tokenReserveBNum}`,
+	);
 
-  console.log(`Assumed Fees: ${fees} BPS`);
+	const fees = updateOne.v2Instance.feesBPS;
 
-  const c =
-    ((ethReserveANum * tokenReserveBNum) * (ethReserveANum * tokenReserveBNum)) -
-    (1 - fees) *
-    (1 - fees) *
-    tokenReserveANum *
-    tokenReserveBNum *
-    ethReserveANum *
-    ethReserveBNum;
-  const k = ((1 - fees) * tokenReserveBNum) + (((1 - fees) * (1 - fees)) * tokenReserveANum);
-  const b = 2 * k * ethReserveANum * tokenReserveBNum;
-  const a = k * k;
-  const discriminant = (b * b) - (4 * a * c);
-  if (discriminant < 0) {
-    console.warn('Negative discriminant, skipping arbitrage calculation.');
-    return null;
-  }
+	const c =
+		ethReserveANum * tokenReserveBNum * (ethReserveANum * tokenReserveBNum) -
+		(1 - fees) *
+			(1 - fees) *
+			tokenReserveANum *
+			tokenReserveBNum *
+			ethReserveANum *
+			ethReserveBNum;
+	const k = (1 - fees) * tokenReserveBNum + (1 - fees) * (1 - fees) * tokenReserveANum;
+	const b = 2 * k * ethReserveANum * tokenReserveBNum;
+	const a = k * k;
+	const discriminant = b * b - 4 * a * c;
+	if (discriminant < 0) {
+		logger.warn('Negative discriminant, skipping rest of arbitrage calculation.');
+		return null;
+	}
 
-  console.log('c:', c);
-  console.log('k:', k);
-  console.log('b:', b);
-  console.log('a:', a);
-  console.log('Discriminant:', discriminant);
+	const idealAmountInNum = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+	if (isNaN(idealAmountInNum) || idealAmountInNum <= 0) {
+		logger.warn('Ideal is invalid, meaning there is no ARB oppurtunity, skipping.');
+		return null;
+	}
 
-  //const idealAmount = (-b + Math.sqrt(discriminant)) / (2n * a);
+	const idealAmountIn = parseEther(idealAmountInNum.toString());
+	// console.log(`Ideal amount in (bigint): ${idealAmountIn}`);
 
-  const idealAmountInNum = (-b + Math.sqrt((b * b) - (4 * a * c))) / (2 * a);
+	const amountTokenOutChainA = getAmountOut(
+		idealAmountIn,
+		ethReserveA,
+		tokenReserveA,
+		updateOne.v2Instance.feesBPS,
+	);
+	// console.log(`Amount token out on chain A: ${amountTokenOutChainA}`);
 
-  console.log(`Calculated ideal amount in: ${idealAmountInNum}`);
+	const amountETHOutChainB = getAmountOut(
+		amountTokenOutChainA,
+		tokenReserveB,
+		ethReserveB,
+		updateTwo.v2Instance.feesBPS,
+	);
 
-  if (isNaN(idealAmountInNum) || idealAmountInNum <= 0) {
-    console.warn('Ideal amount in calculation resulted in NaN or negative value, skipping...');
-    return null;
-  }
+	// console.log(`Amount ETH out on chain B: ${amountETHOutChainB}`);
 
-  const idealAmountIn = parseEther(idealAmountInNum.toString());
-  console.log(`Ideal amount in (bigint): ${idealAmountIn}`);
+	const estimatedProfit = amountETHOutChainB - idealAmountIn;
 
-  const amountTokenOutChainA = getAmountOut(
-    idealAmountIn,
-    ethReserveA,
-    tokenReserveA,
-    updateOne.v2Instance.feesBPS,
-  );
-  console.log(`Amount token out on chain A: ${amountTokenOutChainA}`);
+	// console.log(`Estimated profit: ${estimatedProfit}`);
 
-  const amountETHOutChainB = getAmountOut(
-    amountTokenOutChainA,
-    tokenReserveB,
-    ethReserveB,
-    updateTwo.v2Instance.feesBPS,
-  );
+	const instructions = [
+		// SWAP
+		{
+			v2Instance: updateOne.v2Instance,
+			amountIn: idealAmountIn,
+			minAmountOut: 0n,
+			path:
+				updateOne.weth === 0
+					? [updateOne.token0, updateOne.token1]
+					: [updateOne.token1, updateOne.token0],
+		},
 
-  console.log(`Amount ETH out on chain B: ${amountETHOutChainB}`);
+		// BRIDGE
+		{
+			fromChainID: updateOne.v2Instance.chainId,
+			toChainID: updateTwo.v2Instance.chainId,
+			ca: updateOne.weth === 0 ? updateOne.token1 : updateOne.token0,
+			amount: amountTokenOutChainA,
+		},
 
-  const estimatedProfit = amountETHOutChainB - idealAmountIn;
+		// SWAP
+		{
+			v2Instance: updateTwo.v2Instance,
+			path:
+				updateTwo.weth === 0
+					? [updateTwo.token1, updateTwo.token0]
+					: [updateTwo.token0, updateTwo.token1],
+			amountIn: amountTokenOutChainA,
+			minAmountOut: 0n,
+		},
 
-  console.log(`Estimated profit: ${estimatedProfit}`);
+		// BRIDGE
+		{
+			fromChainID: updateTwo.v2Instance.chainId,
+			toChainID: updateOne.v2Instance.chainId,
+			amount: amountETHOutChainB,
+		},
+	];
 
-  if (estimatedProfit > 0) {
-    console.log('Arbitrage opportunity detected! Returning execution plan...');
-    return {
-      instructions: [
-        // SWAP
-        {
-          v2Instance: updateOne.v2Instance,
-          amountIn: idealAmountIn,
-          minAmountOut: 0n,
-          path:
-            updateOne.weth === 0
-              ? [updateOne.token0, updateOne.token1]
-              : [updateOne.token1, updateOne.token0],
-        },
-
-        // BRIDGE
-        {
-          fromChainID: updateOne.v2Instance.chainId,
-          toChainID: updateTwo.v2Instance.chainId,
-          ca: updateOne.weth === 0 ? updateOne.token1 : updateOne.token0,
-          amount: amountTokenOutChainA,
-        },
-
-        // SWAP
-        {
-          v2Instance: updateTwo.v2Instance,
-          path:
-            updateTwo.weth === 0
-              ? [updateTwo.token1, updateTwo.token0]
-              : [updateTwo.token0, updateTwo.token1],
-          amountIn: amountTokenOutChainA,
-          minAmountOut: 0n,
-        },
-
-        // BRIDGE
-        {
-          fromChainID: updateTwo.v2Instance.chainId,
-          toChainID: updateOne.v2Instance.chainId,
-          amount: amountETHOutChainB,
-        },
-      ],
-      estimatedProfit,
-    };
-  }
-  console.log('No profitable arbitrage opportunity found.');
-  return null;
+	if (estimatedProfit > 0) {
+		logger.info(
+			`Profitable arbitrage opportunity found for ca ${updateOne.weth == 0 ? updateOne.token1 : updateOne.token0} in direction ${updateOne.v2Instance.chainId} --> ${updateTwo.v2Instance.chainId}.`,
+		);
+		logger.info(
+			`Step 1: Swap ${formatEther(idealAmountIn)} ETH for ${formatEther(amountTokenOutChainA)} ${updateOne.weth == 0 ? updateOne.token1 : updateOne.token0} on chain ${updateOne.v2Instance.chainId}`,
+		);
+		logger.info(
+			`Step 2: Bridge ${formatEther(amountTokenOutChainA)} ${updateOne.weth == 0 ? updateOne.token1 : updateOne.token0} from chain ${updateOne.v2Instance.chainId} to chain ${updateTwo.v2Instance.chainId}`,
+		);
+		logger.info(
+			`Step 3: Swap ${formatEther(amountTokenOutChainA)} ${updateOne.weth == 0 ? updateOne.token1 : updateOne.token0} for ${formatEther(amountETHOutChainB)} ETH on chain ${updateTwo.v2Instance.chainId}`,
+		);
+		logger.info(
+			`Step 4: Bridge ${formatEther(amountETHOutChainB)} ETH from chain ${updateTwo.v2Instance.chainId} to chain ${updateOne.v2Instance.chainId}`,
+		);
+		logger.info(`Estimated profit: ${formatEther(estimatedProfit)}`);
+		return {
+			instructions: instructions,
+			estimatedProfit,
+		};
+	}
+	logger.info(
+		`No profitable arbitrage opportunity found for ca ${updateOne.weth == 0 ? updateOne.token1 : updateOne.token0} in direction ${updateOne.v2Instance.chainId} --> ${updateTwo.v2Instance.chainId}.`,
+	);
+	return null;
 };

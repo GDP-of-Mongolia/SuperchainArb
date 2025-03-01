@@ -14,8 +14,10 @@
     "forge-std": "^1.1.2",
     "mathjs": "^14.2.1",
     "openzeppelin": "^1.0.0",
+    "pino": "^9.6.0",
     "prettier": "^3.5.2",
     "solady": "^0.1.9",
-    "viem": "^2.23.5"
+    "viem": "^2.23.5",
+    "winston": "^3.17.0"
   }
 }

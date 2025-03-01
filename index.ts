@@ -1,43 +1,32 @@
-/**
- * 1. Start the supersim, fork chains [A, B, ..., N]
- * 2. deploy superchainERC20 token on chain A
- * 3. bridge ERC20 token from chain A to chains [B, ..., N]
- * 4. Determine amount of ETH liquidity to add on chains [A, B, ..., N]
- * 5. Set the ETH balance of account on chains [A, B, ..., N] to the determined amount for each chain.$
- * 6. Add liquidity to the superchainERC20 token on chains [A, B, ..., N]
- * 7. Deploy executor, which bundles the monitoring process, and the orders (transactions) to be placed, and a management/logging tool
- * 8. Simulate a "fat finger" buy on any one of the chains [A, B, ..., N]
- * 9. See if it executes, and log the result
- */
-
 import {
-    DEPLOYER_ACCOUNT,
-    FAT_FINGER_ACCOUNT,
-    chainIDToRPCUrls,
-    chainIDToWalletClient,
-    ARBITRAGEOUR_ACCOUNT,
-    TOKEN_ADDRESS,
-    BRIDGE_SWAP_CONTRACT,
+	DEPLOYER_ACCOUNT,
+	SIMULATE_BUY_ACCOUNT,
+	chainIDToRPCUrls,
+	chainIDToWalletClient,
+	ARBITRAGEOUR_ACCOUNT,
+	TOKEN_ADDRESS,
+	BRIDGE_SWAP_CONTRACT,
 } from './src/config/config';
 import {
-    type PublicClient,
-    createPublicClient,
-    http,
-    createWalletClient,
-    parseAbiItem,
-    parseAbi,
-    erc20Abi,
+	type PublicClient,
+	createPublicClient,
+	http,
+	createWalletClient,
+	parseAbiItem,
+	parseAbi,
+	erc20Abi,
+	formatEther,
 } from 'viem';
 import { addLiquidity } from './src/utils/deployPools';
 import { type V2Instance } from './src/utils/arbCalc';
 
 import {
-    contracts,
-    publicActionsL2,
-    walletActionsL2,
-    createInteropSentL2ToL2Messages,
-    decodeRelayedL2ToL2Messages,
-    superchainERC20Abi,
+	contracts,
+	publicActionsL2,
+	walletActionsL2,
+	createInteropSentL2ToL2Messages,
+	decodeRelayedL2ToL2Messages,
+	superchainERC20Abi,
 } from '@eth-optimism/viem';
 
 import { base, optimism } from 'viem/chains';
@@ -45,6 +34,19 @@ import { Executor, IGNORE_TX_HASHES } from './src/bot/executor';
 import { buy } from './src/utils/uniswapv2';
 import { UNISWAP_V2_ROUTER_ADDRESSES } from './src/constants/addresses';
 import { sleep } from 'bun';
+import winston from 'winston';
+
+const logger = winston.createLogger({
+	level: 'info',
+	format: winston.format.combine(
+		winston.format.timestamp({ format: 'HH:mm:ss' }),
+		winston.format.printf(({ timestamp, level, message }) => {
+			return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+		}),
+		winston.format.colorize({ all: true }),
+	),
+	transports: [new winston.transports.Console()],
+});
 
 // const optimismPublicClient = chainIDToPublicClient.get(10)?.extend(publicActionsL2());
 // const basePublicClient = chainIDToPublicClient.get(8453)?.extend(publicActionsL2());
@@ -53,163 +55,174 @@ import { sleep } from 'bun';
 
 const AMOUNT_LIQUIDITY_ETH = 1000000000000000000n;
 const AMOUNT_LIQUIDITY_TOKEN = 5000000000000000000000000000n;
-const AMOUNT_FAT_FINGER = 6000000000000000000n;
+const SIMULATE_BUY_AMOUNT = 6000000000000000000n;
 
 const basePublicClient = createPublicClient({
-    chain: base,
-    transport: http(chainIDToRPCUrls.get(8453) as string),
+	chain: base,
+	transport: http(chainIDToRPCUrls.get(8453) as string),
 }).extend(publicActionsL2());
 
 const optimismPublicClient = createPublicClient({
-    chain: optimism,
-    transport: http(chainIDToRPCUrls.get(10) as string),
+	chain: optimism,
+	transport: http(chainIDToRPCUrls.get(10) as string),
 }).extend(publicActionsL2());
 
 const optimismWalletClient = createWalletClient({
-    chain: optimism,
-    transport: http(chainIDToRPCUrls.get(10) as string),
+	chain: optimism,
+	transport: http(chainIDToRPCUrls.get(10) as string),
 }).extend(walletActionsL2());
 
 const baseWalletClient = createWalletClient({
-    chain: base,
-    transport: http(chainIDToRPCUrls.get(8453) as string),
+	chain: base,
+	transport: http(chainIDToRPCUrls.get(8453) as string),
 }).extend(walletActionsL2());
 
 const SuperchainArbitrage = async () => {
-    // start the supersim
-    // deploy superchainerc20 token
-    const tokenAddress = TOKEN_ADDRESS;
-    // mint tokens
+	// Retrieving the token address from the config file
 
-    const mintTokensHashBase = await baseWalletClient.writeContract({
-        address: tokenAddress,
-        abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
-        functionName: 'mintTo',
-        account: DEPLOYER_ACCOUNT,
-        args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
-    });
+	const tokenAddress = TOKEN_ADDRESS;
 
-    console.log('mintTokensHashBase', mintTokensHashBase);
+	// Minting SuperchainERC20 tokens to Base and Optimism to add liquidity
 
-    const mintTokensHashOptimism = await optimismWalletClient.writeContract({
-        address: tokenAddress,
-        abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
-        functionName: 'mintTo',
-        account: DEPLOYER_ACCOUNT,
-        args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
-    });
+	const mintTokensHashBase = await baseWalletClient.writeContract({
+		address: tokenAddress,
+		abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
+		functionName: 'mintTo',
+		account: DEPLOYER_ACCOUNT,
+		args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
+	});
 
-    console.log('mintTokensHashOptimism', mintTokensHashOptimism);
+	logger.info(
+		`Minted ${formatEther(AMOUNT_LIQUIDITY_TOKEN)} tokens on Base to deployer. TX: ${mintTokensHashBase}`,
+	);
 
-    // approving our contract to send tokens
+	const mintTokensHashOptimism = await optimismWalletClient.writeContract({
+		address: tokenAddress,
+		abi: parseAbi(['function mintTo(address to_, uint256 amount_)']),
+		functionName: 'mintTo',
+		account: DEPLOYER_ACCOUNT,
+		args: [DEPLOYER_ACCOUNT.address, AMOUNT_LIQUIDITY_TOKEN],
+	});
 
-    const approveHashBase = await baseWalletClient.writeContract({
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: 'approve',
-        account: ARBITRAGEOUR_ACCOUNT,
-        args: [
-            BRIDGE_SWAP_CONTRACT,
-            115792089237316195423570985008687907853269984665640564039457584007913129639935n,
-        ],
-    });
+	logger.info(
+		`Minted ${formatEther(AMOUNT_LIQUIDITY_TOKEN)} tokens on Optimism to deployer. TX: ${mintTokensHashOptimism}`,
+	);
 
-    const approveHashOptimism = await optimismWalletClient.writeContract({
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: 'approve',
-        account: ARBITRAGEOUR_ACCOUNT,
-        args: [
-            BRIDGE_SWAP_CONTRACT,
-            115792089237316195423570985008687907853269984665640564039457584007913129639935n,
-        ],
-    });
+	// approving SwapAndBridge contract for infinite spending on Base and Optimism
 
+	const approveHashBase = await baseWalletClient.writeContract({
+		address: tokenAddress,
+		abi: erc20Abi,
+		functionName: 'approve',
+		account: ARBITRAGEOUR_ACCOUNT,
+		args: [
+			BRIDGE_SWAP_CONTRACT,
+			115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+		],
+	});
 
-    const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
-        [
-            tokenAddress,
-            [
-                {
-                    chainId: 10,
-                    dexName: 'UniswapV2',
-                    feesBPS: 0.003,
-                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(10) as `0x${string}`,
-                },
-                {
-                    chainId: 8453,
-                    dexName: 'UniswapV2',
-                    feesBPS: 0.003,
-                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(8453) as `0x${string}`,
-                },
-            ],
-        ],
-    ]);
+	logger.info(
+		`Approved ${BRIDGE_SWAP_CONTRACT} for infinite spending on Base. TX: ${approveHashBase}`,
+	);
 
-    const executor = new Executor(tokensAndInstances, ARBITRAGEOUR_ACCOUNT);
-    executor.setup();
+	const approveHashOptimism = await optimismWalletClient.writeContract({
+		address: tokenAddress,
+		abi: erc20Abi,
+		functionName: 'approve',
+		account: ARBITRAGEOUR_ACCOUNT,
+		args: [
+			BRIDGE_SWAP_CONTRACT,
+			115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+		],
+	});
 
-    // sleeping to make sure executor has enough time to set up listeners
-    await sleep(3000);
+	logger.info(
+		`Approved ${BRIDGE_SWAP_CONTRACT} for infinite spending on Optimism. TX: ${approveHashOptimism}`,
+	);
 
-    // add liquidity on both chains
-    const addLiquidityOptimismHash = await addLiquidity(
-        AMOUNT_LIQUIDITY_ETH,
-        tokenAddress,
-        AMOUNT_LIQUIDITY_TOKEN,
-        10,
-        DEPLOYER_ACCOUNT,
-    );
+	const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
+		[
+			tokenAddress,
+			[
+				{
+					chainId: 10,
+					dexName: 'UniswapV2',
+					feesBPS: 0.003,
+					routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(10) as `0x${string}`,
+				},
+				{
+					chainId: 8453,
+					dexName: 'UniswapV2',
+					feesBPS: 0.003,
+					routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(8453) as `0x${string}`,
+				},
+			],
+		],
+	]);
+	// Setting up our Executor and its event listeners
 
-    if (!addLiquidityOptimismHash) {
-        return;
-    }
+	const executor = new Executor(tokensAndInstances, ARBITRAGEOUR_ACCOUNT);
 
-    // IGNORE_TX_HASHES.add(addLiquidityOptimismHash);
+	logger.info('Executor Initialized.');
+	executor.setup();
 
-    console.log('addLiquidityOptimismHash', addLiquidityOptimismHash);
-    const addLiquidityBaseHash = await addLiquidity(
-        AMOUNT_LIQUIDITY_ETH,
-        tokenAddress,
-        AMOUNT_LIQUIDITY_TOKEN,
-        8453,
-        DEPLOYER_ACCOUNT,
-    );
+	// sleeping to make sure executor has enough time to set up listeners
+	await sleep(3000);
 
-    if (!addLiquidityBaseHash) {
-        return;
-    }
+	logger.info('Executor listeners started.');
 
-    // IGNORE_TX_HASHES.add(addLiquidityBaseHash);
+	// add liquidity on both chains to simulate arbitrage
 
+	const addLiquidityOptimismHash = await addLiquidity(
+		AMOUNT_LIQUIDITY_ETH,
+		tokenAddress,
+		AMOUNT_LIQUIDITY_TOKEN,
+		10,
+		DEPLOYER_ACCOUNT,
+	);
 
+	if (!addLiquidityOptimismHash) {
+		return;
+	}
 
-    console.log('addLiquidityBaseHash', addLiquidityBaseHash);
-    // deploy executor
+	logger.info(
+		`Added ${formatEther(AMOUNT_LIQUIDITY_ETH)} ETH and ${formatEther(AMOUNT_LIQUIDITY_TOKEN)} tokens to Uni V2 Liquidity on Optimism. TX: ${addLiquidityOptimismHash}`,
+	);
 
+	const addLiquidityBaseHash = await addLiquidity(
+		AMOUNT_LIQUIDITY_ETH,
+		tokenAddress,
+		AMOUNT_LIQUIDITY_TOKEN,
+		8453,
+		DEPLOYER_ACCOUNT,
+	);
 
+	if (!addLiquidityBaseHash) {
+		return;
+	}
 
-    console.log('executor setup done.');
+	logger.info(
+		`Added ${formatEther(AMOUNT_LIQUIDITY_ETH)} ETH and ${formatEther(AMOUNT_LIQUIDITY_TOKEN)} tokens to Uni V2 Liquidity on Base. TX: ${addLiquidityBaseHash}`,
+	);
 
-    // simulate a fat finger on optimism
+	// Simulating a large buy on optimism to trigger an arbitrage oppurtunity.
+	// Our executor has a background process that will listen to the event triggrered by this buy, and perform a cross chain arbitrage.
 
-    const fatFingerHash = (await buy(
-        optimismWalletClient,
-        FAT_FINGER_ACCOUNT,
-        AMOUNT_FAT_FINGER,
-        tokenAddress,
-        10,
-    )) as `0x${string}`;
+	const simulateBuyHash = (await buy(
+		optimismWalletClient,
+		SIMULATE_BUY_ACCOUNT,
+		SIMULATE_BUY_AMOUNT,
+		tokenAddress,
+		10,
+	)) as `0x${string}`;
 
-    // const fatFingerReceipt = await optimismPublicClient.waitForTransactionReceipt({
-    //     hash: fatFingerHash,
-    // });
+	if (!simulateBuyHash) {
+		return;
+	}
 
-    // console.log(fatFingerReceipt);
-
-    console.log('fatFingerHash', fatFingerHash);
-
-    // see if it executes and log the result
+	logger.info(
+		`Simulated a buy of ${formatEther(SIMULATE_BUY_AMOUNT)} ETH on Optimism. TX: ${simulateBuyHash}`,
+	);
 };
 
 SuperchainArbitrage();
