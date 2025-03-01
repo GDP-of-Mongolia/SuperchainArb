@@ -175,8 +175,21 @@ dist
 .DS_Store
 
 lib
-
-broadcast
-
+# Ignore build and output directories
+broadcast/
 cache
-out
+lib
+node_modules/
+out/
+
+# Ignore log and temp files
+src/scripts/stderr.txt
+src/scripts/stdout.txt
+src/scripts/stderr_forge.txt
+src/scripts/stdout_forge.txt
+
+# Ignore config and dependency files
+.prettierrc.json
+src/scripts/stdout.txt
+src/scripts/stdout_forge.txt
+cache/solidity-files-cache.json
