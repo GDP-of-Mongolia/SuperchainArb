@@ -41,18 +41,19 @@ import {
 } from '@eth-optimism/viem';
 
 import { base, optimism } from 'viem/chains';
-import { Executor } from './src/bot/executor';
+import { Executor, IGNORE_TX_HASHES } from './src/bot/executor';
 import { buy } from './src/utils/uniswapv2';
 import { UNISWAP_V2_ROUTER_ADDRESSES } from './src/constants/addresses';
+import { sleep } from 'bun';
 
 // const optimismPublicClient = chainIDToPublicClient.get(10)?.extend(publicActionsL2());
 // const basePublicClient = chainIDToPublicClient.get(8453)?.extend(publicActionsL2());
 
 // const optimismWalletClient = chainIDToWalletClient.get(10)?.extend(walletActionsL2());
 
-const AMOUNT_LIQUIDITY_ETH = 1000000000000000000000n;
+const AMOUNT_LIQUIDITY_ETH = 1000000000000000000n;
 const AMOUNT_LIQUIDITY_TOKEN = 5000000000000000000000000000n;
-const AMOUNT_FAT_FINGER = 14000000000000000000n;
+const AMOUNT_FAT_FINGER = 6000000000000000000n;
 
 const basePublicClient = createPublicClient({
     chain: base,
@@ -124,6 +125,33 @@ const SuperchainArbitrage = async () => {
         ],
     });
 
+
+    const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
+        [
+            tokenAddress,
+            [
+                {
+                    chainId: 10,
+                    dexName: 'UniswapV2',
+                    feesBPS: 0.003,
+                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(10) as `0x${string}`,
+                },
+                {
+                    chainId: 8453,
+                    dexName: 'UniswapV2',
+                    feesBPS: 0.003,
+                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(8453) as `0x${string}`,
+                },
+            ],
+        ],
+    ]);
+
+    const executor = new Executor(tokensAndInstances, ARBITRAGEOUR_ACCOUNT);
+    executor.setup();
+
+    // sleeping to make sure executor has enough time to set up listeners
+    await sleep(3000);
+
     // add liquidity on both chains
     const addLiquidityOptimismHash = await addLiquidity(
         AMOUNT_LIQUIDITY_ETH,
@@ -132,6 +160,12 @@ const SuperchainArbitrage = async () => {
         10,
         DEPLOYER_ACCOUNT,
     );
+
+    if (!addLiquidityOptimismHash) {
+        return;
+    }
+
+    // IGNORE_TX_HASHES.add(addLiquidityOptimismHash);
 
     console.log('addLiquidityOptimismHash', addLiquidityOptimismHash);
     const addLiquidityBaseHash = await addLiquidity(
@@ -142,31 +176,18 @@ const SuperchainArbitrage = async () => {
         DEPLOYER_ACCOUNT,
     );
 
+    if (!addLiquidityBaseHash) {
+        return;
+    }
+
+    // IGNORE_TX_HASHES.add(addLiquidityBaseHash);
+
+
+
     console.log('addLiquidityBaseHash', addLiquidityBaseHash);
     // deploy executor
 
-    const tokensAndInstances = new Map<`0x${string}`, V2Instance[]>([
-        [
-            tokenAddress,
-            [
-                {
-                    chainId: 10,
-                    dexName: 'UniswapV2',
-                    feesBPS: 0.03,
-                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(10) as `0x${string}`,
-                },
-                {
-                    chainId: 8453,
-                    dexName: 'UniswapV2',
-                    feesBPS: 0.03,
-                    routerAddress: UNISWAP_V2_ROUTER_ADDRESSES.get(8453) as `0x${string}`,
-                },
-            ],
-        ],
-    ]);
 
-    const executor = new Executor(tokensAndInstances, ARBITRAGEOUR_ACCOUNT);
-    executor.setup();
 
     console.log('executor setup done.');
 
@@ -180,13 +201,13 @@ const SuperchainArbitrage = async () => {
         10,
     )) as `0x${string}`;
 
-    const fatFingerReceipt = await optimismPublicClient.waitForTransactionReceipt({
-        hash: fatFingerHash,
-    });
+    // const fatFingerReceipt = await optimismPublicClient.waitForTransactionReceipt({
+    //     hash: fatFingerHash,
+    // });
 
     // console.log(fatFingerReceipt);
 
-    // console.log('fatFingerHash', fatFingerHash);
+    console.log('fatFingerHash', fatFingerHash);
 
     // see if it executes and log the result
 };

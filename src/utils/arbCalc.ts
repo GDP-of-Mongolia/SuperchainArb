@@ -85,7 +85,7 @@ export const evaluateV2ArbOppurtunity = (
   console.log(`ETH Reserve A: ${ethReserveANum}, Token Reserve A: ${tokenReserveANum}`);
   console.log(`ETH Reserve B: ${ethReserveBNum}, Token Reserve B: ${tokenReserveBNum}`);
 
-  const fees = updateOne.v2Instance.feesBPS / 10;
+  const fees = updateOne.v2Instance.feesBPS;
 
   console.log(`Assumed Fees: ${fees} BPS`);
 

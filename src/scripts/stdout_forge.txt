@@ -4,36 +4,36 @@ Gas used: 5097843
 
 == Logs ==
   Deploying to chain:  op
-  Deployed L2NativeSuperchainERC20 at address:  0xf93001fbCeFA4d711327005277e2598286B228eE on chain id:  10
-  Deployed SwapAndBridge at address:  0xea602DCb8566059b2cC3283B04aB39f430653c31
+  Deployed L2NativeSuperchainERC20 at address:  0x1e51A562ea463A9784E5D0885477fb5d988AD4F9 on chain id:  10
+  Deployed SwapAndBridge at address:  0xF184812583827C1E07CA74BbD52B03F1BB681708
   Deploying to chain:  base
-  Deployed L2NativeSuperchainERC20 at address:  0xf93001fbCeFA4d711327005277e2598286B228eE on chain id:  8453
-  Deployed SwapAndBridge at address:  0xea602DCb8566059b2cC3283B04aB39f430653c31
+  Deployed L2NativeSuperchainERC20 at address:  0x1e51A562ea463A9784E5D0885477fb5d988AD4F9 on chain id:  8453
+  Deployed SwapAndBridge at address:  0xF184812583827C1E07CA74BbD52B03F1BB681708
   Outputting deployment result
 
 ## Setting up 2 EVMs.
 
 ==========================
 
-Chain 10
-
-Estimated gas price: 1.000000014 gwei
-
-Estimated total gas used for script: 3628790
-
-Estimated amount required: 0.00362879005080306 ETH
-
-==========================
-
-==========================
-
 Chain 8453
 
-Estimated gas price: 1.000000014 gwei
+Estimated gas price: 0.000000015 gwei
 
 Estimated total gas used for script: 3628790
 
-Estimated amount required: 0.00362879005080306 ETH
+Estimated amount required: 0.00000000005443185 ETH
+
+==========================
+
+==========================
+
+Chain 10
+
+Estimated gas price: 0.000000015 gwei
+
+Estimated total gas used for script: 3628790
+
+Estimated amount required: 0.00000000005443185 ETH
 
 ==========================
 

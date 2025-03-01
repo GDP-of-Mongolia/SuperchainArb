@@ -19,6 +19,7 @@ import { watchSyncEvents } from '../utils/monitor';
 import { BRIDGE_SWAP_CONTRACT, chainIDToRPCUrls, chainIDtoChain } from '../config/config';
 import { BRIDGE_SWAP_ABI } from '../constants/abi/BridgeSwapABI';
 import { WETH_ADDRESSES } from '../constants/addresses';
+import { bridgeBack } from '../../testBridgeBack';
 
 export const IGNORE_TX_HASHES = new Set<`0x${string}`>();
 
@@ -75,8 +76,6 @@ export class Executor {
             (v2Instance) => v2Instance == update.v2Instance,
         );
 
-        console.log('current v2 instance, which is used as part of the key', currV2Insance);
-
         if (!currV2Insance) {
             return;
         }
@@ -95,7 +94,7 @@ export class Executor {
         const tokenAndV2Instances: TokenAndV2Instance[] = v2Instances.map((v2Instance) => {
             return { ca: ca, v2Instance: v2Instance };
         });
-        console.log('tokenAndV2Instances before .map iteration', tokenAndV2Instances);
+        // console.log('tokenAndV2Instances before .map iteration', tokenAndV2Instances);
         const priceUpdates: V2PoolReservesUpdate[] = tokenAndV2Instances.map(
             (tokenAndV2Instance) => {
                 const update = this.latestPriceUpdates.get(
@@ -108,7 +107,7 @@ export class Executor {
             },
         ) as V2PoolReservesUpdate[];
 
-        console.log('state of latestPriceUpdates', this.latestPriceUpdates);
+        // console.log('state of latestPriceUpdates', is.latestPriceUpdates);
 
         // eliminate undefined elements from priceUpdates
 
@@ -147,6 +146,7 @@ export class Executor {
         const originRouterV2 = (execution.instructions[0] as SwapV2Ins).v2Instance.routerAddress;
         const destinationRouterV2 = (execution.instructions[2] as SwapV2Ins).v2Instance
             .routerAddress;
+        console.log('originRouter', originRouterV2, 'destChainID', destinationRouterV2);
 
         const publicClient = createPublicClient({
             chain: chainIDtoChain.get(originChainID),
@@ -186,8 +186,12 @@ export class Executor {
         console.log('Arb executed with txHash: ', txHash);
 
 
+
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-        console.log('Arb executed with receipt: ', receipt);
+
+        // await bridgeBack();
+
+        // console.log('Arb executed with receipt: ', receipt);
         return receipt;
     };
 
@@ -199,7 +203,7 @@ export class Executor {
 }
 
 const getPriceUpdatePairs = (priceUpdates: V2PoolReservesUpdate[]) => {
-    console.log(priceUpdates);
+    // console.log(priceUpdates);
     const pairs = [];
     for (let i = 0; i < priceUpdates.length; i++) {
         for (let j = i + 1; j < priceUpdates.length; j++) {

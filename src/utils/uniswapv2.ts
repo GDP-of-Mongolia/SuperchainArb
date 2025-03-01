@@ -20,10 +20,10 @@ export const getAmountOut = (
     reserveOut: bigint,
     fees: number,
 ): bigint => {
-    const feesBips = fees * 100;
+    const feesBips = fees * 1000;
     const amountInWithFee = amountIn * BigInt(1000 - feesBips);
     const numerator = amountInWithFee * reserveOut;
-    const denominator = reserveIn + amountInWithFee;
+    const denominator = reserveIn * 1000n + amountInWithFee;
     const amountOut = numerator / denominator;
     return amountOut;
 };

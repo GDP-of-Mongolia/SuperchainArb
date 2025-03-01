@@ -52,9 +52,11 @@ export const watchSyncEvents = (
                     // console.warn("Sync event is missing reserve0 or reserve1.");
                     continue;
                 }
-                if (IGNORE_TX_HASHES.has(log.transactionHash)) {
-                    continue;
-                }
+                console.log("tx hash of event:", log.transactionHash);
+                // if (IGNORE_TX_HASHES.has(log.transactionHash)) {
+                //     console.log("choosing to ignore event.")
+                //     continue;
+                // }
                 const v2PriceUpdate: V2PoolReservesUpdate = {
                     v2Instance: v2Instance,
                     reserve0: log.args.reserve0,
