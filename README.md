@@ -2,16 +2,16 @@
 
 ## Problem Statement
 
-### Judging Criteria
+### Application characteristics:
 
-To be considered successful, the application must:
+The application:
 
-- Integrate with at least one of the Superchain interop predeploys.
-- Build an arbitrage bot that utilizes Superchain interop to profit from price differences across common DEX pools on different chains (e.g., ChainA and ChainB).
+- Integrates with the Superchain interop predeploys.
+- Arbitrage bot that utilizes Superchain interop to profit from price differences across common DEX pools on different chains (e.g., ChainA and ChainB).
 
 ### Impact on OP Labs
 
-OP Labs is collaborating with developers working on Interop devnets to gather feedback and improve the Superchain Interop ecosystem. Your participation will contribute to the long-term success of this technology.
+Helping OP Labs by collaborating and working on Interop devnets to give feedback and improve the Superchain Interop ecosystem.
 
 ---
 
