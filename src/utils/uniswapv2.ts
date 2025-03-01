@@ -1,5 +1,3 @@
-// ADD LIQUIDITY FUNCTION
-
 import {
     type WalletClient,
     getCreate2Address,
@@ -56,12 +54,6 @@ export const pairFor = (
     return pairAddress;
 };
 
-// flexibility for different chains
-// knowing which chains have which router v2 addresses (V2Instance interface)
-// knowing which chains have which factory addresses (V2Instance interface)
-// knowing which chains have which weth addresses (V2Instance interface?)
-// knowing which chains have which fee amounts (V2Instance interface)
-// chains have chainid obviously
 
 /**
  * needed for fat fingering functionality

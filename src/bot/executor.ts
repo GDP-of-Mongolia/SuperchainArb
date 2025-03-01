@@ -1,18 +1,3 @@
-// What do you need for the whole executor
-// 1. Set up supersim
-// 2. Set up environment
-// 3. Deploy SuperchainERC20 on all applicable pools(i.e. on 2 chains for our use case basically)
-// 4. Add Liquidity to the pools on all chains( again, 2 chains for our use case)
-// 5. Startup Listener, which monitors price discrepancy
-// 6. Ape into one of the pools with ETH (code pending)
-// 7. Listener code detects sync event, calls check. Check passes
-// 8. execute code called, which basically calls the smart contract to do both the swap and bridge, on both chains. (code pending)
-// 9. Once, the arb is completed, we would like to generate a log or recording of the arb buy price, the chains, sell price.
-
-// what other data would we want logged or recorded?
-// 1. What the expected arb was, our projected buy price and sell price.
-// 2. Actual arb details, buy execution price, sell execution price.
-
 import {
     type V2PoolReservesUpdate,
     type V2Instance,
@@ -34,7 +19,6 @@ import { watchSyncEvents } from '../utils/monitor';
 import { BRIDGE_SWAP_CONTRACT, chainIDToRPCUrls, chainIDtoChain } from '../config/config';
 import { BRIDGE_SWAP_ABI } from '../constants/abi/BridgeSwapABI';
 import { WETH_ADDRESSES } from '../constants/addresses';
-// import { chainIDToPublicClient } from "../config/config";
 
 export const IGNORE_TX_HASHES = new Set<`0x${string}`>();
 
@@ -69,10 +53,6 @@ export class Executor {
         this.tokensAndInstances.forEach((v2Instances, ca) => {
             v2Instances.forEach((v2Instance) => {
                 const tokenAndV2Instance = { ca: ca, v2Instance: v2Instance };
-                // const client = chainIDToPublicClient.get(v2Instance.chainId) as PublicClient;
-                // if (!client) {
-                // 	return;
-                // }
                 const unwatch = watchSyncEvents(
                     v2Instance.chainId,
                     tokenAndV2Instance,
@@ -146,17 +126,6 @@ export class Executor {
         }
     };
 
-    // //function swapAndBridge(
-    // 	address owner,
-    // 	address token,
-    // 	address recipient,
-    // 	uint256 amount,
-    // 	uint256 originChainId,
-    // 	uint256 destinationChainId,
-    // 	address originRouterV2,
-    // 	address destRouterV2,
-    // 	address destContract
-    // )
     executeArb = async (execution: V2ArbExecution) => {
         console.log('Executing arb.');
         const partialABI = parseAbi([

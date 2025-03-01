@@ -1,11 +1,3 @@
-// write a flexible listener function that returns unwatch
-// function should work with multiple chains and uniswap V2 deployments
-// we are mostly concerned with the Swap pair event
-// consideration: do we want to listen to the pair directly, or do we want to listen to the router
-// if we listen to the router, we would have to iterate each transactions logs to dig out the SWAP events
-// at a seperate part of our code, we will start a listener instance for each chain / DEX we want to monitor
-// we will consolidate the data in one spot to calculate the arbs
-// the aim is to be ~somewhat flexible in adding more DEXs / chains
 
 import { type V2PoolReservesUpdate, type V2Instance } from './arbCalc';
 
@@ -28,18 +20,6 @@ import { IGNORE_TX_HASHES } from '../bot/executor';
 
 // // --- ABI for the Sync event ---
 const UNISWAP_V2_SYNC_ABI = parseAbiItem('event Sync(uint112 reserve0, uint112 reserve1)');
-
-// // --- Types ---
-// export type SyncEvent = {
-//     reserve0: bigint;
-//     reserve1: bigint;
-// };
-
-// @TODO: DATA TYPE FOR WETH ADDRESSES ON ALL CHAINS
-
-// // --- Listener Function ---
-// /**
-//  * Creates a flexible listener for Sync events on a Uniswap V2 pair.
 
 export const watchSyncEvents = (
     chainId: number,

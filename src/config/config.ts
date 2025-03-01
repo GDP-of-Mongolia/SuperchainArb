@@ -45,33 +45,12 @@ export const chainIDToRPCUrls: Map<number, `https://${string}` | `http://${strin
     [8453, 'http://127.0.0.1:9546'],
 ]);
 
-// export const chainIDToPublicClient: Map<number, PublicClient> = new Map<
-// 	number,
-// 	PublicClient | Client
-// >([
-// 	[
-// 		10,
-// 		createPublicClient({
-// 			chain: optimism,
-// 			transport: http('http://127.0.0.1:9545'),
-// 		}) as PublicClient,
-// 	],
-// 	[
-// 		8453,
-// 		createPublicClient({
-// 			chain: base,
-// 			transport: http('http://127.0.0.1:9546'),
-// 		}) as PublicClient,
-// 	],
-// ]);
-
 export const chainIDToWalletClient: Map<number, WalletClient> = new Map<number, WalletClient>([
     [
         10,
         createWalletClient({
             chain: optimism,
             transport: http('http://127.0.0.1:9545'),
-            // account: PUBLIC_KEY as `0x${string}`, // Ensuring correct type
         }),
     ],
     [
@@ -79,7 +58,6 @@ export const chainIDToWalletClient: Map<number, WalletClient> = new Map<number, 
         createWalletClient({
             chain: base,
             transport: http('http://127.0.0.1:9546'),
-            // account: PUBLIC_KEY as `0x${string}`,
         }),
     ],
 ]);

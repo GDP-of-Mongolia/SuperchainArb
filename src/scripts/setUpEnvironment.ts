@@ -74,8 +74,6 @@ function updateConfigTS() {
 
 
 
-// Run both updates
-
 
 
 

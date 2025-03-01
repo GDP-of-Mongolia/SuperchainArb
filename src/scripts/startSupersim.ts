@@ -52,7 +52,6 @@ export async function startSupersim(
 (async () => {
     try {
         const cleanup = await startSupersim();
-        //cleanup(); // Cleanup process after deployment
     } catch (error) {
         console.error('Error in execution:', error);
     }
