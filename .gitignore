@@ -174,13 +174,13 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 
-lib
+
 # Ignore build and output directories
 broadcast/
 cache
-lib
-node_modules/
-out/
+# lib
+# node_modules/
+# out/
 
 # Ignore log and temp files
 src/scripts/stderr.txt
