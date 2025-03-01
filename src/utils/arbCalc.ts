@@ -85,22 +85,36 @@ export const evaluateV2ArbOppurtunity = (
   console.log(`ETH Reserve A: ${ethReserveANum}, Token Reserve A: ${tokenReserveANum}`);
   console.log(`ETH Reserve B: ${ethReserveBNum}, Token Reserve B: ${tokenReserveBNum}`);
 
-  const fees = updateOne.v2Instance.feesBPS;
+  const fees = updateOne.v2Instance.feesBPS / 10;
 
   console.log(`Assumed Fees: ${fees} BPS`);
 
   const c =
-    (ethReserveANum * tokenReserveBNum) * (ethReserveANum * tokenReserveBNum) -
+    ((ethReserveANum * tokenReserveBNum) * (ethReserveANum * tokenReserveBNum)) -
     (1 - fees) *
     (1 - fees) *
     tokenReserveANum *
     tokenReserveBNum *
     ethReserveANum *
     ethReserveBNum;
-  const k = (1 - fees) * tokenReserveBNum + (1 - fees) * (1 - fees) * tokenReserveANum;
+  const k = ((1 - fees) * tokenReserveBNum) + (((1 - fees) * (1 - fees)) * tokenReserveANum);
   const b = 2 * k * ethReserveANum * tokenReserveBNum;
   const a = k * k;
-  const idealAmountInNum = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+  const discriminant = (b * b) - (4 * a * c);
+  if (discriminant < 0) {
+    console.warn('Negative discriminant, skipping arbitrage calculation.');
+    return null;
+  }
+
+  console.log('c:', c);
+  console.log('k:', k);
+  console.log('b:', b);
+  console.log('a:', a);
+  console.log('Discriminant:', discriminant);
+
+  //const idealAmount = (-b + Math.sqrt(discriminant)) / (2n * a);
+
+  const idealAmountInNum = (-b + Math.sqrt((b * b) - (4 * a * c))) / (2 * a);
 
   console.log(`Calculated ideal amount in: ${idealAmountInNum}`);
 

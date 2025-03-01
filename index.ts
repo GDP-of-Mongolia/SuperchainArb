@@ -50,9 +50,9 @@ import { UNISWAP_V2_ROUTER_ADDRESSES } from './src/constants/addresses';
 
 // const optimismWalletClient = chainIDToWalletClient.get(10)?.extend(walletActionsL2());
 
-const AMOUNT_LIQUIDITY_ETH = 100000000000000000n;
-const AMOUNT_LIQUIDITY_TOKEN = 50000000000000000000000n;
-const AMOUNT_FAT_FINGER = 1000000000000000000n;
+const AMOUNT_LIQUIDITY_ETH = 1000000000000000000000n;
+const AMOUNT_LIQUIDITY_TOKEN = 5000000000000000000000000000n;
+const AMOUNT_FAT_FINGER = 14000000000000000000n;
 
 const basePublicClient = createPublicClient({
     chain: base,

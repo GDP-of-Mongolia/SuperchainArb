@@ -49,14 +49,8 @@ contract SwapAndBridge {
 		IUniswapV2Router02 originRouter = IUniswapV2Router02(originRouterV2);
 
 		address[] memory path = new address[](2);
-		// path = [Predeploys.SUPERCHAIN_WETH, token]
 		path[0] = ethAddress;
 		path[1] = token;
-
-		// contract needs to be approved for the tokens before this
-
-		// Approve the Uniswap router to spend tokenIn.
-		// require(IERC20(token).approve(address(this), amount), 'Approval failed');
 
 		uint256 contractBalance = address(this).balance;
 		require(contractBalance >= amount, 'Not enough ETH balance in contract');
@@ -72,7 +66,6 @@ contract SwapAndBridge {
 
 		require(swappedAmount > 0, 'Swap returned zero tokens');
 
-		// the contract needs to be approved to sed the tokens
 		bytes32 msgHash = bridgeInterface.sendERC20(
 			token,
 			destContract,
@@ -80,12 +73,6 @@ contract SwapAndBridge {
 			destinationChainId
 		);
 
-		// // uint[] memory amounts2 = destRouter.swapExactTokensForETH()
-
-		// // send a message to chain B to swap the tokens on arrival, and also bridge them back
-		// // this will be in the form of data,
-
-		// For example, assume the destination contract has a function:
 		// We encode the call data accordingly:
 		bytes memory messageData = abi.encodeWithSelector(
 			this.SwapAndBridgeBack.selector,
@@ -110,7 +97,7 @@ contract SwapAndBridge {
 		address originRouterV2,
 		bytes32 _sendHash
 	) external payable {
-		// CrossDomainMessageLib.requireCrossDomainCallback(); // what does this do. it was in the example code
+		// CrossDomainMessageLib.requireCrossDomainCallback();
 
 		// CrossDomainMessageLib.requireMessageSuccess uses a special error signature that the
 		// auto-relayer performs special handling on. The auto-relayer parses the _sendWethMsgHash
@@ -142,11 +129,6 @@ contract SwapAndBridge {
 		require(swappedAmount > 0, 'Swap returned zero tokens');
 
 		wethInterface.sendETH{ value: swappedAmount }(recipient, destinationChainId);
-
-		// uint[] memory amounts2 = destRouter.swapExactTokensForETH()
-
-		// send a message to chain B to swap the tokens on arrival, and also bridge them back
-		// this will be in the form of data,
 	}
 	receive() external payable {}
 }

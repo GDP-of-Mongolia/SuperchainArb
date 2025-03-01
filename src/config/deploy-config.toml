@@ -1,5 +1,5 @@
 [deploy_config]
-salt = "ethers hen 24834"
+salt = "ethers hen 80481"
 chains = ["op","base"]
 
 [token]
